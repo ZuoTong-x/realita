@@ -1,0 +1,28 @@
+/* Auto-scrolling columns for login gallery */
+@keyframes login-scroll-down {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes login-scroll-up {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.login-scroll-down {
+  will-change: transform;
+  animation: login-scroll-down 60s linear infinite;
+}
+
+.login-scroll-up {
+  will-change: transform;
+  animation: login-scroll-up 60s linear infinite;
+}

@@ -31,15 +31,23 @@
     "login_captcha_sent": "Verification code sent",
     "send_captcha_failed": "Send verification code failed",
     "login_verify": "Verify login",
-    "login_agreement": "Login means you agree to SekoTalk's ",
+    "login_agreement": "By signing in, you are agreeing to the",
     "login_privacy": "Privacy policy",
     "login_terms": " and ",
-    "login_service": "Service policy",
+    "login_service": "Terms of Service",
     "login_fetching": "Logging in...",
     "login_success": "Login successful",
-    "login_failed": "Login failed"
+    "login_failed": "Login failed",
+    "login_welcome": "Welcome to login"
   },
   "home": {
-    "create_new_character": "Create a new character"
+    "create_new_character": "Create a new character",
+    "upload_character_image": "Upload character image",
+    "enter_character_name": "character name",
+    "enter_character_prompt": "character setting prompt",
+    "enter_voice_name": "voice name"
+  },
+  "character": {
+    "character_creating": "Character creating..."
   }
 }

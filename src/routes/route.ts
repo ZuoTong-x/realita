@@ -8,6 +8,7 @@ export interface AppRoute {
   element: React.ComponentType;
 
   name?: string;
+  requiresAuth?: boolean;
   children?: AppRoute[];
 }
 
@@ -17,16 +18,19 @@ export const mainRoutes: AppRoute[] = [
     path: "/",
     element: HomePage,
     name: "sidebar_home",
+    requiresAuth: true,
   },
   {
     path: "/login",
     element: LoginPage,
     name: "sidebar_assets",
+    requiresAuth: false,
   },
   {
     path: "/live",
     element: LivePage,
     name: "sidebar_profile",
+    requiresAuth: true,
   },
 ];
 

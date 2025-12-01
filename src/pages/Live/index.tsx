@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Character } from "@/types/Character";
-import v1 from "@/assets/videos/home_list_1.mp4";
+
 import img_34624891 from "@/assets/images/Rectangle 34624891.png";
 import { CallingStatus, Ratio } from "@/types/Live";
 import { getWindowSize, getUserWindowSize } from "@/utils/live_util";
@@ -13,6 +13,7 @@ import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
 import IconCalling from "@/assets/svg/IconCalling.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
+import useCamera from "@/hooks/useCamera";
 
 import { useTranslation } from "react-i18next";
 
@@ -36,44 +37,14 @@ const LivePage = () => {
     CallingStatus.PENDING
   );
   // 用户摄像头
-  const userVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [userStream, setUserStream] = useState<MediaStream | null>(null);
-  const [cameraGranted, setCameraGranted] = useState<boolean>(false);
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false,
-      });
-      setUserStream(stream);
-      setCameraGranted(true);
-    } catch (e) {
-      if (e instanceof Error && e.name === "NotAllowedError") {
-        console.log("用户拒绝授权或浏览器禁止");
-      } else if (e instanceof Error && e.name === "NotFoundError") {
-        console.log("没有可用的摄像头");
-      } else if (e instanceof Error && e.name === "NotReadableError") {
-        console.log("摄像头被占用");
-      } else if (e instanceof Error && e.name === "OverconstrainedError") {
-        console.log("约束条件无法匹配任何设备");
-      } else {
-        setCameraGranted(false);
-      }
-    }
-  };
-  useEffect(() => {
-    if (userVideoRef.current && userStream) {
-      userVideoRef.current.srcObject = userStream;
-      userVideoRef.current.play().catch(() => {});
-    }
-  }, [userStream]);
-  useEffect(() => {
-    return () => {
-      if (userStream) {
-        userStream.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [userStream]);
+  const {
+    videoRef: userVideoRef,
+    stream: userStream,
+    granted: cameraGranted,
+    startCamera,
+    stopCamera,
+    toggleCamera,
+  } = useCamera({ video: true, audio: false, autoPlay: true });
 
   // Global page mute: toggle all media elements
   useEffect(() => {
@@ -94,34 +65,6 @@ const LivePage = () => {
       //  const character = await getCharacter(characterId);
       // character example:
 
-      const character = {
-        id: "1",
-        name: "John Doe",
-        description: "John Doe is a friendly person",
-        image: img_34624891,
-        voice: v1,
-        userInfo: {
-          id: "1",
-          nickname: "John Doe",
-          username: "john_doe",
-          email: "john_doe@example.com",
-          avatar_url: "https://example.com/avatar.jpg",
-          status: "active",
-          phone: "13800000000",
-          login_type: "email",
-          login_identifier: "john_doe@example.com",
-          last_login_at: new Date().getTime(),
-          last_login_ip: "127.0.0.1",
-          created_at: new Date().getTime(),
-          updated_at: new Date().getTime(),
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        login_type: "email",
-        login_identifier: "john_doe@example.com",
-        last_login_at: new Date().getTime(),
-        last_login_ip: "127.0.0.1",
-      };
       setCharacter(character);
       setBgImg(img_34624891);
       setIsLoading(false);
@@ -235,7 +178,7 @@ const LivePage = () => {
             className="h-20 px-0"
             borderRadiusPx={54}
             onClick={() => {
-              if (cameraGranted) setCameraGranted(false);
+              if (cameraGranted) stopCamera();
               else startCamera();
             }}
           >

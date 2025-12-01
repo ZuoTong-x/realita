@@ -3,6 +3,12 @@ export enum Ratio {
   PORTRAIT = "portrait",
   SQUARE = "square",
 }
+export interface RatioItem {
+  label: string;
+  value: Ratio;
+  icon: React.ReactNode;
+}
+
 // 排队中 通话中 已挂断
 export enum CallingStatus {
   PENDING = "pending",

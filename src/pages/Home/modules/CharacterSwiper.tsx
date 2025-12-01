@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { Character } from "@/types/Character";
 import CommonButton from "@/components/Common/Button";
 import IconArrow from "@/assets/svg/IconArrow.svg?react";
@@ -8,49 +8,36 @@ import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioOn.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import { useNavigate } from "react-router-dom";
+import useCharacterListStore from "@/stores/characterListStore";
 
-type CharacterSwiperProps = {
-  characterList: Character[];
-  changeCharacter: (character: Character) => void;
-  currentCharacter: Character | null;
-};
+const CharacterSwiper = () => {
+  const {
+    characterList,
+    currentCharacter,
 
-const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
-  characterList,
-  currentCharacter,
-  changeCharacter,
-}) => {
+    setCurrentCharacter,
+  } = useCharacterListStore();
   const { t } = useTranslation();
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [mutedAll, setMutedAll] = useState<boolean>(false);
+
   const navigate = useNavigate();
-  const goNext = () => {
-    if (currentCharacter) {
-      const currentIndex = characterList.findIndex(
-        (ch: Character) => ch.id === currentCharacter.id
-      );
-      const nextIndex =
-        currentIndex >= characterList.length - 1 ? 0 : currentIndex + 1;
-      changeCharacter(characterList[nextIndex]);
+
+  // Build a 7-item circular window centered at currentCharacter
+  const visibleList = useMemo(() => {
+    if (!currentCharacter || characterList.length === 0) return [];
+    const len = characterList.length;
+    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    if (curIdx === -1) return [];
+    const res: Character[] = [];
+    for (let o = -3; o <= 3; o++) {
+      const idx = (curIdx + o + len) % len;
+      res.push(characterList[idx]);
     }
-  };
-  const goPrev = () => {
-    if (currentCharacter) {
-      const currentIndex = characterList.findIndex(
-        (ch: Character) => ch.id === currentCharacter.id
-      );
-      const prevIndex =
-        currentIndex <= 0 ? characterList.length - 1 : currentIndex - 1;
-      changeCharacter(characterList[prevIndex]);
-    }
-  };
-  const getCardClass = (character: Character) => {
-    const curIdx = characterList.findIndex(
-      (c) => c.id === currentCharacter?.id
-    );
-    const idx = characterList.findIndex((c) => c.id === character.id);
-    if (curIdx === -1 || idx === -1) return "";
-    const offset = idx - curIdx; // -3..3
+    return res;
+  }, [characterList, currentCharacter]);
+
+  const getCardClassByOffset = (offset: number) => {
     const base = cn(
       "absolute w-[380px] max-w-[90vw] h-full bg-transparent rounded-[16px] ",
       "shadow-[0_8px_32px_#00000026] overflow-hidden opacity-0 pointer-events-none ",
@@ -86,34 +73,81 @@ const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
   };
 
   const handleChat = (character: Character) => {
-    console.log(character);
     navigate(`/live?characterId=${character.id}`);
   };
 
-  // keep refs in sync with global mute
   useEffect(() => {
     videoRefs.current.forEach((v) => {
       if (v) v.muted = mutedAll;
     });
   }, [mutedAll, characterList]);
 
-  // no pause behavior on character change
+  // step-by-step move to target index for smooth wrap-around
+  const stepTimerRef = useRef<number | null>(null);
+  const stepToIndex = (targetIdx: number) => {
+    if (!currentCharacter || characterList.length === 0) return;
+    const len = characterList.length;
+    let curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    if (curIdx === -1 || targetIdx === curIdx) return;
+    const forward = (targetIdx - curIdx + len) % len;
+    const backward = (curIdx - targetIdx + len) % len;
+    const dir = forward <= backward ? 1 : -1;
+    let steps = Math.min(forward, backward);
+    const run = () => {
+      if (steps <= 0) {
+        stepTimerRef.current = null;
+        return;
+      }
+      curIdx = characterList.findIndex((c) => c.id === currentCharacter!.id);
+      const nextIdx = (curIdx + dir + len) % len;
+      setCurrentCharacter(characterList[nextIdx]);
+      steps -= 1;
+      stepTimerRef.current = window.setTimeout(run, 60);
+    };
+    if (stepTimerRef.current) {
+      window.clearTimeout(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
+    run();
+  };
+
+  // wrap-around navigation to keep infinite loop without flicker
+  const goNext = () => {
+    if (!currentCharacter || characterList.length === 0) return;
+    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    const nextIdx = (curIdx + 1) % characterList.length;
+    setCurrentCharacter(characterList[nextIdx]);
+  };
+  const goPrev = () => {
+    if (!currentCharacter || characterList.length === 0) return;
+    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    const prevIdx = (curIdx - 1 + characterList.length) % characterList.length;
+    setCurrentCharacter(characterList[prevIdx]);
+  };
+
   return (
     <div className={cn("relative w-full h-full flex flex-col pt-[72px]")}>
-      {characterList.length > 0 && currentCharacter && (
+      {visibleList.length > 0 && currentCharacter && (
         <div
           className={cn(
             "flex-1 relative flex items-end justify-center h-full",
             "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
           )}
         >
-          {characterList.map((character: Character, idx: number) => {
-            const curIdx = characterList.findIndex(
-              (c) => c.id === currentCharacter?.id
-            );
-            const isCenter = idx === curIdx;
+          {visibleList.map((character: Character, idx: number) => {
+            const offset = idx - 3; // -3..3
+            const isCenter = offset === 0;
             return (
-              <div key={character.id} className={getCardClass(character)}>
+              <div
+                key={character.id}
+                className={getCardClassByOffset(offset)}
+                onClick={() => {
+                  const targetIdx = characterList.findIndex(
+                    (c) => c.id === character.id
+                  );
+                  if (targetIdx !== -1) stepToIndex(targetIdx);
+                }}
+              >
                 <div
                   className="w-full aspect-[2/3] overflow-hidden bg-transparent mt-0 rounded-t-[16px] relative flex-1"
                   onMouseEnter={() => {
@@ -132,6 +166,7 @@ const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
                 >
                   <video
                     src={character.voice}
+                    poster={character.image}
                     autoPlay={false}
                     loop
                     muted={mutedAll}
@@ -140,7 +175,9 @@ const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
                       videoRefs.current[idx] = el;
                     }}
                     className="w-full h-full object-cover relative z-0"
-                  />
+                  >
+                    <source src={character.voice} type="video/mp4" />
+                  </video>
 
                   {isCenter && (
                     <>
@@ -198,7 +235,6 @@ const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
             onClick={goPrev}
             className="w-12 h-12 p-0"
             borderRadiusPx={54}
-            disabled={currentCharacter?.id === characterList[0].id}
           >
             <IconArrow className="w-6 h-6 transform rotate-180" />
           </CommonButton>
@@ -206,10 +242,6 @@ const CharacterSwiper: React.FC<CharacterSwiperProps> = ({
             onClick={goNext}
             className="w-12 h-12 p-0"
             borderRadiusPx={54}
-            disabled={
-              currentCharacter?.id ===
-              characterList[characterList.length - 1].id
-            }
           >
             <IconArrow className="w-6 h-6" />
           </CommonButton>

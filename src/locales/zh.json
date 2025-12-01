@@ -31,15 +31,23 @@
     "login_captcha_sent": "验证码已发送",
     "send_captcha_failed": "发送验证码失败",
     "login_verify": "验证登录",
-    "login_agreement": "登录即代表您同意 SekoTalk 的 ",
+    "login_agreement": "登录即代表您同意",
     "login_privacy": "隐私条款",
     "login_terms": " 和 ",
     "login_service": "服务政策",
     "login_fetching": "登录中...",
     "login_success": "登录成功",
-    "login_failed": "登录失败"
+    "login_failed": "登录失败",
+    "login_welcome": "欢迎登录"
   },
   "home": {
-    "create_new_character": "创建新角色"
+    "create_new_character": "创建新角色",
+    "upload_character_image": "上传角色图片",
+    "enter_character_name": "请输入角色名称",
+    "enter_character_prompt": "角色设置提示",
+    "enter_voice_name": "请输入语音名称"
+  },
+  "character": {
+    "character_creating": "角色创建中..."
   }
 }
