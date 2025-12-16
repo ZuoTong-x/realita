@@ -48,10 +48,28 @@
     "upload_character_image": "上传角色图片",
     "enter_character_name": "请输入角色名称",
     "enter_character_prompt": "角色设置提示",
-    "enter_voice_name": "请输入语音名称"
+    "enter_voice_name": "请输入语音名称",
+    "please_upload_image": "请先上传图片",
+    "start_conversation": "开始对话",
+    "please_select_voice": "请选择语音",
+    "end_conversation": "结束对话",
+    "service_running": "服务已启动",
+    "service_stopped": "服务已关闭",
+    "service_not_started": "服务未启动"
   },
   "character": {
     "character_creating": "角色创建中...",
     "generated_success": "角色已成功生成！"
+  },
+  "live": {
+    "lack_of_key_data": "缺乏关键数据，请重新开始对话",
+    "permission_title": "需要权限",
+    "permission_desc": "请授权摄像头与麦克风以开始通话。",
+    "permission_denied": "请检查摄像头与麦克风是否正常工作。",
+    "permission_granted": "权限已授予",
+    "connecting": "连接中",
+    "calling": "通话中",
+    "call_failed": "通话失败",
+    "idle": "请点击开始通话"
   }
 }
