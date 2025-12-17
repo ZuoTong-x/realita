@@ -12,9 +12,9 @@ export interface Character {
   image: string;
   voice: string;
 
-  userInfo: UserInfo;
-  created_at: string;
-  updated_at: string;
+  // userInfo: UserInfo;
+  // created_at: string;
+  // updated_at: string;
 }
 
 export enum CreateStatus {

@@ -41,7 +41,8 @@
     "login_failed": "Login failed",
     "login_welcome": "Welcome to login",
     "fetch_user_info_failed": "Failed to get user information",
-    "fetch_credits_failed": "Failed to get credits"
+    "fetch_credits_failed": "Failed to get credits",
+    "login_out": "Logout"
   },
   "home": {
     "create_new_character": "Create a new character",
@@ -71,5 +72,10 @@
     "calling": "Calling",
     "call_failed": "Call failed",
     "idle": "Click to start calling"
+  },
+  "user": {
+    "history": "History",
+    "likes": "Likes",
+    "assets": "Assets"
   }
 }

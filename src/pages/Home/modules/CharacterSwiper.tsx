@@ -8,10 +8,16 @@ import { useTranslation } from "react-i18next";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioOn.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
-import { useNavigate } from "react-router-dom";
+
 import useCharacterListStore from "@/stores/characterListStore";
 
-const CharacterSwiper = () => {
+type CharacterSwiperProps = {
+  // registerPause?: (pauseFn: () => void) => void;
+  // registerPlay?: (playFn: () => void) => void;
+  onChat: (character: Character) => void;
+};
+
+const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const {
     characterList,
     currentCharacter,
@@ -22,9 +28,6 @@ const CharacterSwiper = () => {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [mutedAll, setMutedAll] = useState<boolean>(false);
 
-  const navigate = useNavigate();
-
-  // Build a 7-item circular window centered at currentCharacter
   const visibleList = useMemo(() => {
     if (!currentCharacter || characterList.length === 0) return [];
     const len = characterList.length;
@@ -38,30 +41,102 @@ const CharacterSwiper = () => {
     return res;
   }, [characterList, currentCharacter]);
 
-  const getCardClassByOffset = (offset: number) => {
-    const base = cn(
-      "absolute w-[380px] max-w-[90vw] h-full bg-transparent rounded-[16px] ",
-      "shadow-[0_8px_32px_#00000026] overflow-hidden opacity-0 pointer-events-none ",
-      "transition-[transform,opacity,filter] duration-[400ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] will-change-transform ",
-      "cursor-pointer [transform-style:preserve-3d] origin-bottom left-1/2 bottom-[-30px] -ml-[190px] box-border",
-      "group flex flex-col"
-    );
-    if (offset === 0) {
-      return cn(
-        base,
-        "[transform:scale(1.05)_rotate(0deg)_translateY(0)] z-[10] blur-0 opacity-100 pointer-events-auto",
-        "hover:[transform:scale(1.07)_rotate(0deg)] hover:shadow-[0_16px_48px_#00000040] duration-[300ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-      );
-    }
-    const map: Record<number, string> = {
-      [-3]: "[transform:scale(0.8)_rotate(-60deg)_translateY(-150px)] z-[1] blur-[6px] opacity-100 pointer-events-auto",
-      [-2]: "[transform:scale(0.8)_rotate(-40deg)_translateY(-170px)] z-[2] blur-[4px] opacity-100 pointer-events-auto",
-      [-1]: "[transform:scale(0.8)_rotate(-20deg)_translateY(-200px)] z-[3] blur-[2px] opacity-100 pointer-events-auto",
-      [1]: "[transform:scale(0.8)_rotate(20deg)_translateY(-200px)] z-[3] blur-[2px] opacity-100 pointer-events-auto",
-      [2]: "[transform:scale(0.8)_rotate(40deg)_translateY(-170px)] z-[2] blur-[4px] opacity-100 pointer-events-auto",
-      [3]: "[transform:scale(0.8)_rotate(60deg)_translateY(-150px)] z-[1] blur-[6px] opacity-100 pointer-events-auto",
+  const getCardStyleByOffset = (offset: number): React.CSSProperties => {
+    const baseStyle: React.CSSProperties = {
+      position: "absolute",
+      width: "380px",
+      maxWidth: "90vw",
+      height: "100%",
+      backgroundColor: "transparent",
+      borderRadius: "16px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+      overflow: "hidden",
+      opacity: 0,
+      pointerEvents: "none",
+      transition:
+        "transform 400ms cubic-bezier(0.25,0.46,0.45,0.94), opacity 400ms cubic-bezier(0.25,0.46,0.45,0.94), filter 400ms cubic-bezier(0.25,0.46,0.45,0.94)",
+      willChange: "transform",
+      cursor: "pointer",
+      transformStyle: "preserve-3d",
+      transformOrigin: "center bottom",
+      left: "50%",
+      bottom: "-30px",
+      marginLeft: "-190px",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
     };
-    return cn(base, map[offset] ?? "");
+
+    if (offset === 0) {
+      return {
+        ...baseStyle,
+        transform: "scale(1.05) rotate(0deg) translateY(0)",
+        zIndex: 10,
+        filter: "blur(0px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      };
+    }
+
+    const map: Record<number, React.CSSProperties> = {
+      [-3]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(-60deg) translateY(-150px)",
+        zIndex: 1,
+        filter: "blur(6px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+      [-2]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(-40deg) translateY(-170px)",
+        zIndex: 2,
+        filter: "blur(4px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+      [-1]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(-20deg) translateY(-200px)",
+        zIndex: 3,
+        filter: "blur(2px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+      [1]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(20deg) translateY(-200px)",
+        zIndex: 3,
+        filter: "blur(2px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+      [2]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(40deg) translateY(-170px)",
+        zIndex: 2,
+        filter: "blur(4px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+      [3]: {
+        ...baseStyle,
+        transform: "scale(0.8) rotate(60deg) translateY(-150px)",
+        zIndex: 1,
+        filter: "blur(6px)",
+        opacity: 1,
+        pointerEvents: "auto",
+      },
+    };
+    return map[offset] ?? baseStyle;
+  };
+
+  const getCardClassByOffset = (offset: number) => {
+    return cn(
+      "group flex flex-col",
+      offset === 0 &&
+        "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]"
+    );
   };
 
   const playOnly = (idx: number) => {
@@ -74,7 +149,7 @@ const CharacterSwiper = () => {
   };
 
   const handleChat = (character: Character) => {
-    navigate(`/live?characterId=${character.id}`);
+    onChat(character);
   };
 
   useEffect(() => {
@@ -93,7 +168,11 @@ const CharacterSwiper = () => {
         )}
       >
         {offsets.map((offset, idx) => (
-          <div key={idx} className={getCardClassByOffset(offset)}>
+          <div
+            key={idx}
+            style={getCardStyleByOffset(offset)}
+            className={getCardClassByOffset(offset)}
+          >
             <div className="w-full aspect-[2/3] overflow-hidden bg-transparent mt-0 rounded-t-[16px] relative flex-1">
               <Skeleton.Button
                 active
@@ -111,7 +190,6 @@ const CharacterSwiper = () => {
     );
   };
 
-  // step-by-step move to target index for smooth wrap-around
   const stepTimerRef = useRef<number | null>(null);
   const stepToIndex = (targetIdx: number) => {
     if (!currentCharacter || characterList.length === 0) return;
@@ -140,18 +218,17 @@ const CharacterSwiper = () => {
     run();
   };
 
-  // wrap-around navigation to keep infinite loop without flicker
   const goNext = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
     const nextIdx = (curIdx + 1) % characterList.length;
-    setCurrentCharacter(characterList[nextIdx]);
+    stepToIndex(nextIdx);
   };
   const goPrev = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
     const prevIdx = (curIdx - 1 + characterList.length) % characterList.length;
-    setCurrentCharacter(characterList[prevIdx]);
+    stepToIndex(prevIdx);
   };
 
   return (
@@ -170,6 +247,7 @@ const CharacterSwiper = () => {
             return (
               <div
                 key={character.id}
+                style={getCardStyleByOffset(offset)}
                 className={getCardClassByOffset(offset)}
                 onClick={() => {
                   const targetIdx = characterList.findIndex(
@@ -250,7 +328,7 @@ const CharacterSwiper = () => {
                     {character.name}
                   </div>
                   {/* 描述  */}
-                  <div className="w-full text-sm text-gray-500 line-clamp-3 ">
+                  <div className="w-full text-sm text-gray-500 line-clamp-2 h-10 leading-relaxed">
                     {character.description}
                   </div>
                 </div>

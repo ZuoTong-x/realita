@@ -2,7 +2,7 @@ import HomePage from "../pages/Home";
 import LoginPage from "../pages/Login";
 import LivePage from "../pages/Live";
 import MainLayout from "../layouts/MainLayout";
-
+import UserPage from "../pages/User";
 export interface AppRoute {
   path: string;
   element: React.ComponentType;
@@ -30,6 +30,12 @@ export const mainRoutes: AppRoute[] = [
     path: "/live",
     element: LivePage,
     name: "live",
+    requiresAuth: true,
+  },
+  {
+    path: "/user",
+    element: UserPage,
+    name: "user",
     requiresAuth: true,
   },
 ];

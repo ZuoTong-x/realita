@@ -99,9 +99,7 @@ const LoginForm = () => {
   const handleGLClick = () => {
     message.loading(t("login.login_fetching"));
     setLogging(true);
-    // loginGoogle();
-    // 模拟登录
-    verifyGLToken("string");
+    loginGoogle();
   };
 
   const handlePhoneLogin = async (event: React.FormEvent) => {

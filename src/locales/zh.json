@@ -41,7 +41,8 @@
     "login_failed": "登录失败",
     "login_welcome": "欢迎登录",
     "fetch_user_info_failed": "获取用户信息失败",
-    "fetch_credits_failed": "获取积分失败"
+    "fetch_credits_failed": "获取积分失败",
+    "login_out": "退出登录"
   },
   "home": {
     "create_new_character": "创建新角色",
@@ -71,5 +72,10 @@
     "calling": "通话中",
     "call_failed": "通话失败",
     "idle": "请点击开始通话"
+  },
+  "user": {
+    "history": "创作历史",
+    "likes": "我的喜欢",
+    "assets": "我的收藏"
   }
 }

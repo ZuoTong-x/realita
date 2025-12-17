@@ -1,3 +1,7 @@
+import { Segmented } from "antd";
+import { cn } from "@/utils/style_utils";
+import type { SegmentedProps } from "antd";
+
 type RadioTabsProps = {
   tabsList: {
     label: string;
@@ -8,38 +12,60 @@ type RadioTabsProps = {
   }[];
   activeValue: string;
   onChange: (value: string) => void;
+  iconPosition?: "left" | "right"; // "left" = icon在前（正序）, "right" = label在前（倒序）
+  tabsClassName?: string;
 };
-const RadioTabs = ({ tabsList, activeValue, onChange }: RadioTabsProps) => {
-  return (
-    <div className="w-full flex items-center justify-center">
-      <div className="inline-flex items-center p-1 border border-[#E6E6E6] rounded-full bg-white">
-        {tabsList.map((tab) => {
-          const isActive = activeValue === tab.value;
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-[#eef0f0]"
-                    : "text-[#666666] hover:text-[#2E2F23] hover:bg-[#EEF0F2]"
-                }
-                ${tab.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-              `}
-              onClick={() => onChange(tab.value)}
-              disabled={tab.disabled}
-            >
-              <div className="flex items-center gap-1">
-                <span className="w-4 h-4">{tab.icon}</span>
-                <span className="text-[12px] tracking-[0.04em]">
-                  {tab.label}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+
+const RadioTabs = ({
+  tabsList,
+  activeValue,
+  onChange,
+  iconPosition = "left",
+  tabsClassName = "",
+}: RadioTabsProps) => {
+  const options: SegmentedProps["options"] = tabsList.map((tab) => {
+    const labelContent = (
+      <div className="flex items-center gap-1">
+        {iconPosition === "left" ? (
+          <>
+            <span className="w-4 h-4 flex items-center justify-center">
+              {tab.icon}
+            </span>
+            <span className="text-[12px] tracking-[0.04em]">{tab.label}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-[12px] tracking-[0.04em]">{tab.label}</span>
+            <span className="w-4 h-4 flex items-center justify-center">
+              {tab.icon}
+            </span>
+          </>
+        )}
       </div>
+    );
+
+    return {
+      label: tab.tooltip ? (
+        <span title={tab.tooltip}>{labelContent}</span>
+      ) : (
+        labelContent
+      ),
+      value: tab.value,
+      disabled: tab.disabled,
+    };
+  });
+
+  return (
+    <div
+      className={cn("w-full flex items-center justify-center", tabsClassName)}
+    >
+      <Segmented
+        options={options}
+        shape="round"
+        value={activeValue}
+        onChange={(value) => onChange(value as string)}
+        className="radio-tabs-segmented"
+      />
     </div>
   );
 };

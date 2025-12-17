@@ -3,7 +3,11 @@ export interface ApiResponse<T> {
   msg: string;
   data: T;
 }
-
+export interface Lightx2vApiResponse<T> {
+  success: boolean;
+  msg: string;
+  data: T;
+}
 export interface PaginatedResponse<T> {
   code: number;
   total: number;

@@ -22,8 +22,8 @@ const Header = () => {
   const location = useLocation();
   const [curLng, setCurLng] = useState<string>("zh");
   const [routerName, setRouterName] = useState<string>("home");
-  const { userInfo, isLogined, setUserStore, setCreditStore } = useUserStore();
-  const [logined, setLogined] = useState<boolean>(false);
+  const { userInfo, isLoggedIn, setUserStore, setCreditStore } = useUserStore();
+  const [isLogged, setIsLogged] = useState<boolean>(false);
 
   const handleLangClick = () => {
     if (curLng === "zh") {
@@ -78,15 +78,15 @@ const Header = () => {
   }, [location]);
 
   useEffect(() => {
-    if (logined) {
+    if (isLoggedIn) {
       fetchUserInfo();
       fetchCreditInfo();
     }
-  }, [logined, fetchUserInfo, fetchCreditInfo]);
+  }, [isLoggedIn, fetchUserInfo, fetchCreditInfo]);
 
   useEffect(() => {
-    setLogined(isLogined);
-  }, [isLogined]);
+    setIsLogged(isLoggedIn);
+  }, [isLoggedIn]);
   return (
     <div className="w-full h-full px-6 flex justify-between items-center relative bg-transparent">
       <div
@@ -121,7 +121,7 @@ const Header = () => {
         </CommonButton>
 
         {/* 头像或登录按钮 */}
-        {logined ? (
+        {isLogged ? (
           <div className=" cursor-pointer">
             {userInfo?.avatar_url ? (
               <img

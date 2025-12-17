@@ -1,7 +1,7 @@
 import type { Character } from "@/types/Character";
 import { Skeleton, Popover } from "antd";
 import { cn } from "@/utils/style_utils";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 
 type CharacterSliderProps = {
   characterList: Character[];
@@ -14,24 +14,25 @@ const CharacterSlider = ({
   currentCharacter,
   changeCharacter,
 }: CharacterSliderProps) => {
-  const { rotated, midIndex } = useMemo(() => {
-    if (!characterList.length || !currentCharacter) {
-      return { rotated: characterList, midIndex: 0 };
-    }
+  const getCharacterOrder = (character: Character): number => {
+    if (!currentCharacter || characterList.length === 0) return 0;
     const len = characterList.length;
     const currentIdx = characterList.findIndex(
       (c) => c.id === currentCharacter.id
     );
-    const center = Math.floor(len / 2);
-    const start = (((currentIdx - center) % len) + len) % len;
-    const rotatedList = [
-      ...characterList.slice(start),
-      ...characterList.slice(0, start),
-    ];
-    return { rotated: rotatedList, midIndex: center };
-  }, [characterList, currentCharacter]);
+    const charIdx = characterList.findIndex((c) => c.id === character.id);
+    if (currentIdx === -1 || charIdx === -1) return 0;
 
-  // Step-by-step change to target index (circular), for smooth visual transition
+    const center = Math.floor(len / 2);
+
+    let offset = charIdx - currentIdx;
+    // Normalize to shortest path around circle
+    if (offset > len / 2) offset -= len;
+    if (offset < -len / 2) offset += len;
+
+    return center + offset;
+  };
+
   const timerRef = useRef<number | null>(null);
   const stepToIndex = (targetIdx: number) => {
     if (!currentCharacter || characterList.length === 0) return;
@@ -63,10 +64,12 @@ const CharacterSlider = ({
 
   return (
     <div className="w-full h-full rounded-md bg-white/10 p-2 shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] overflow-hidden">
-      {rotated.length > 0 && currentCharacter ? (
+      {characterList.length > 0 && currentCharacter ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          {rotated.map((character, idx) => {
-            const isCenter = idx === midIndex;
+          {characterList.map((character) => {
+            const order = getCharacterOrder(character);
+            const center = Math.floor(characterList.length / 2);
+            const isCenter = order === center;
             return (
               <Popover
                 key={character.id}
@@ -82,13 +85,18 @@ const CharacterSlider = ({
                 arrow={false}
               >
                 <div
-                  key={character.id}
                   className={cn(
-                    "w-full transition-all duration-300 cursor-pointer hover:scale-110 overflow-hidden",
+                    "w-full cursor-pointer hover:scale-110 overflow-hidden",
                     isCenter
                       ? "h-[76px] w-[76px] rounded-full"
                       : "shadow-[0_0_13.5px_0_rgba(0,0,0,0.25)] opacity-70 h-7 rounded-[50%]"
                   )}
+                  style={{
+                    order: order,
+                    transition:
+                      "all 300ms cubic-bezier(0.4, 0, 0.2, 1), order 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    willChange: "height, width, opacity, transform, order",
+                  }}
                   onClick={() => {
                     const targetIdx = characterList.findIndex(
                       (c) => c.id === character.id
@@ -100,7 +108,7 @@ const CharacterSlider = ({
                     src={character.image}
                     alt={character.name}
                     className={cn(
-                      "w-full h-full object-cover",
+                      "w-full h-full object-cover transition-all duration-300",
                       isCenter ? "rounded-full" : "rounded-[50%]"
                     )}
                   />
