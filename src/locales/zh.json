@@ -18,7 +18,9 @@
     "language_en": "英文",
     "copied_to_clipboard": "已复制到剪贴板",
     "open_camera": "点击开启摄像头",
-    "network_error": "网络错误"
+    "network_error": "网络错误",
+    "no_data": "暂无数据",
+    "error": "系统错误"
   },
   "login": {
     "login": "登录",
@@ -56,7 +58,12 @@
     "end_conversation": "结束对话",
     "service_running": "服务已启动",
     "service_stopped": "服务已关闭",
-    "service_not_started": "服务未启动"
+    "service_not_started": "服务未启动",
+    "positive_prompt": "正向提示词",
+    "negative_prompt": "负面提示词",
+    "positive_prompt_placeholder": "请输入正向提示词...",
+    "negative_prompt_placeholder": "请输入反向/排除提示词...",
+    "select_voice": "选择语音"
   },
   "character": {
     "character_creating": "角色创建中...",

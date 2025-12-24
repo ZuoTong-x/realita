@@ -14,7 +14,7 @@ import useUserStore from "@/stores/userStore";
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
-  if (!isLoggedIn) {
+  if (isLoggedIn) {
     return children;
   }
   return (

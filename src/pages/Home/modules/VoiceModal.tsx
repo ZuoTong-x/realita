@@ -1,13 +1,33 @@
-import React, { useState } from "react";
-import { Modal } from "antd";
-import { Button } from "antd";
-import type { Voice } from "@/types/Live";
+import React, { useState, useMemo, useRef } from "react";
+import { Modal, Button, Empty } from "antd";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/utils/style_utils";
+import DropdownMenu from "@/components/DropdownMenu";
+import IconModelBlack from "@/assets/svg/IconModelBlack.svg?react";
+import IconModelGray from "@/assets/svg/IconModelGray.svg?react";
+import IconArrowDownBlack from "@/assets/svg/IconArrowDownBlack.svg?react";
+
+import IconPlay from "@/assets/svg/IconPlay.svg?react";
+import IconPause from "@/assets/svg/IconPause.svg?react";
+import type { Voice } from "@/types/Character";
+
+export interface ProcessedVoice extends Voice {
+  language: { key: string; label_zh: string; label_en: string } | null;
+  type: { zh: string; en: string; key: string };
+}
+
+interface LanguageOption {
+  key: string;
+  label_zh: string;
+  label_en: string;
+}
 
 type VoiceModalProps = {
   open: boolean;
   onClose: () => void;
-  onApply: (voice: Voice | null) => void;
-  voiceList: Voice[];
+  onApply: (voice: ProcessedVoice | null) => void;
+  voiceList: ProcessedVoice[];
+  typeList: { zh: string; en: string; key: string }[];
 };
 
 const VoiceModal: React.FC<VoiceModalProps> = ({
@@ -15,15 +35,110 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   onClose,
   onApply,
   voiceList,
+  typeList,
 }) => {
-  const [selected, setSelected] = useState<Voice | null>(null);
+  const [selected, setSelected] = useState<ProcessedVoice | null>(null);
+  const { i18n, t } = useTranslation();
+
+  const [langFilter, setLangFilter] = useState<string>("全部");
+  const [categoryFilter, setCategoryFilter] = useState<string>("全部");
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>("");
+  const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const languages = useMemo(() => {
+    const map = new Map<string, LanguageOption>();
+    voiceList.forEach((v) => {
+      if (v.language) {
+        map.set(v.language.key, v.language);
+      }
+    });
+
+    const allLang = { key: "全部", label_zh: "全部", label_en: "All" };
+    return [allLang, ...Array.from(map.values())];
+  }, [voiceList]);
+
+  const filteredList = useMemo(() => {
+    return voiceList.filter((v) => {
+      const matchLang = langFilter === "全部" || v.language?.key === langFilter;
+      const matchCategory =
+        categoryFilter === "全部" || v.type?.key === categoryFilter;
+      return matchLang && matchCategory;
+    });
+  }, [voiceList, langFilter, categoryFilter]);
+
+  const handleAudioPlay = (ev: React.MouseEvent, v: ProcessedVoice) => {
+    ev.stopPropagation();
+
+    if (playingId === v.id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+    } else {
+      if (v.sample_asset?.url) {
+        setCurrentAudioUrl(v.sample_asset.url);
+        setPlayingId(v.id);
+        if (audioRef.current) {
+          audioRef.current.load();
+          audioRef.current.play().catch(() => {
+            setPlayingId(null);
+          });
+        }
+      }
+    }
+  };
+
+  const handleAudioEnded = () => {
+    setPlayingId(null);
+  };
+  const renderTitle = () => (
+    <div className="flex justify-between items-center w-full pr-8">
+      <span className="text-base font-medium text-[#3B3D2C]">
+        {t("home.select_voice")}
+      </span>
+      <div className="flex gap-2 justify-end items-center">
+        <DropdownMenu<LanguageOption>
+          list={languages}
+          value={languages.find((l) => l.key === langFilter) || languages[0]}
+          onChange={(item) => {
+            setLangFilter(item.key);
+            setCategoryFilter("全部");
+          }}
+          formatLabel={(l) =>
+            i18n.language === "zh" ? l.label_zh : l.label_en
+          }
+          getKey={(l) => l.key}
+          isSelected={(l, v) => l.key === v?.key}
+          defaultLabel={t("common.language")}
+          iconActive={<IconModelBlack className="w-4 h-4" />}
+          iconInactive={<IconModelGray className="w-4 h-4" />}
+          iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
+        />
+
+        <DropdownMenu<{ zh: string; en: string; key: string }>
+          list={typeList}
+          value={typeList.find((t) => t.key === categoryFilter) || typeList[0]}
+          onChange={(item) => {
+            setCategoryFilter(item.key);
+          }}
+          formatLabel={(c) => (i18n.language === "zh" ? c.zh : c.en)}
+          getKey={(c) => c.key}
+          isSelected={(c, v) => c.key === v?.key}
+          defaultLabel={i18n.language === "zh" ? "类型" : "Type"}
+          iconActive={<IconModelBlack className="w-4 h-4" />}
+          iconInactive={<IconModelGray className="w-4 h-4" />}
+          iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <Modal
       open={open}
       onCancel={onClose}
-      title="选择语音"
+      title={renderTitle()}
       centered
+      width={640}
       footer={
         <div className="w-full flex items-center justify-end gap-3">
           <Button
@@ -41,27 +156,78 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         </div>
       }
       classNames={{
-        container: "w-[24rem] !rounded-2xl",
-        body: "max-h-[20rem] overflow-y-auto",
+        container: "w-[40rem] !rounded-2xl",
+        body: "h-[30rem] overflow-y-auto",
       }}
     >
-      <div className="w-full flex flex-col gap-2">
-        {voiceList.map((v) => {
-          const active = selected?.voice_type === v.voice_type;
-          return (
-            <button
-              key={v.voice_type}
-              type="button"
-              className={`w-full h-10 px-3 rounded-xl border text-left ${
-                active ? "border-[#3B3D2C] bg-[#f6f6f6]" : "border-black/20"
-              }`}
-              onClick={() => setSelected(v)}
-            >
-              <span className="text-sm">{`${v.name}( ${v.gender})- ${v.scene}`}</span>
-            </button>
-          );
-        })}
+      <div
+        className={
+          filteredList.length > 0
+            ? "w-full grid grid-cols-2 gap-3 mt-4"
+            : "w-full flex items-center justify-center mt-4 h-40"
+        }
+      >
+        {filteredList.length > 0 ? (
+          filteredList.map((v) => {
+            const active = selected?.id === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                className={`w-full p-3 rounded-[50px] border text-left flex flex-col gap-1 transition-all ${
+                  active
+                    ? "border-[#3B3D2C] bg-[#f6f6f6]"
+                    : "border-black/10 hover:border-black/20"
+                }`}
+                onClick={() => setSelected(v)}
+              >
+                <div className="flex justify-between items-center">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
+                      v.sample_asset?.url
+                        ? "bg-[#000] cursor-pointer group hover:bg-[#333]"
+                        : "bg-[#ccc] cursor-not-allowed"
+                    )}
+                    onClick={(e) => {
+                      if (v.sample_asset?.url) {
+                        handleAudioPlay(e, v);
+                      } else {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
+                    {playingId === v.id ? (
+                      <IconPause className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-[#fff]" />
+                    ) : (
+                      <IconPlay
+                        className={cn(
+                          "w-6 h-6 transition-transform duration-300 text-[#fff]",
+                          v.sample_asset?.url && "group-hover:scale-110"
+                        )}
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center items-center ">
+                    <span className="text-sm font-medium">
+                      {v.friendly_name}
+                    </span>
+                    <span className="text-xs text-[#666]">
+                      {i18n.language === "zh" ? v.type?.zh : v.type?.en}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("common.no_data")}
+          />
+        )}
       </div>
+      <audio ref={audioRef} src={currentAudioUrl} onEnded={handleAudioEnded} />
     </Modal>
   );
 };

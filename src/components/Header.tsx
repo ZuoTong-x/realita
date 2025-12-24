@@ -7,13 +7,15 @@ import { getLanguage, saveLanguage } from "../utils/user_util";
 
 import IconShare from "@/assets/svg/IconShare.svg?react";
 import IconUser from "@/assets/svg/IconUser.svg?react";
+import IconCredit from "@/assets/svg/IconCredit.svg?react";
 import CommonButton from "./Common/Button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/style_utils";
 import { App } from "antd";
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
-import { fetchCreditsDetail, fetchUserInfoDetail } from "@/api/userRequest";
+// import { fetchUserInfoDetail } from "@/api/userRequest";
+import { getUserCredits } from "@/api/login";
 
 const Header = () => {
   const { message } = App.useApp();
@@ -22,7 +24,7 @@ const Header = () => {
   const location = useLocation();
   const [curLng, setCurLng] = useState<string>("zh");
   const [routerName, setRouterName] = useState<string>("home");
-  const { userInfo, isLoggedIn, setUserStore, setCreditStore } = useUserStore();
+  const { userInfo, credits, isLoggedIn, setCreditStore } = useUserStore();
   const [isLogged, setIsLogged] = useState<boolean>(false);
 
   const handleLangClick = () => {
@@ -39,17 +41,18 @@ const Header = () => {
   // 获取积分
   const fetchCreditInfo = useCallback(async () => {
     try {
-      const ret = await fetchCreditsDetail();
+      const ret = await getUserCredits();
       if (ret.code !== 200 || !ret.data) {
         message.error(ret.msg || t("login.fetch_credits_failed"));
         return;
       }
       setCreditStore(ret.data);
-    } catch (error) {
+    } catch {
       message.error(t("common.network_error"));
     }
   }, [setCreditStore, message, t]);
   // 获取用户信息
+  /*
   const fetchUserInfo = useCallback(async () => {
     try {
       const ret = await fetchUserInfoDetail();
@@ -58,10 +61,11 @@ const Header = () => {
         return;
       }
       setUserStore(ret.data);
-    } catch (error) {
+    } catch {
       message.error(t("common.network_error"));
     }
   }, [setUserStore, message, t]);
+  */
   // 复制当前页面链接
   const handleShareClick = () => {
     const url = window.location.href;
@@ -79,10 +83,10 @@ const Header = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchUserInfo();
+      // fetchUserInfo();
       fetchCreditInfo();
     }
-  }, [isLoggedIn, fetchUserInfo, fetchCreditInfo]);
+  }, [isLoggedIn, fetchCreditInfo]);
 
   useEffect(() => {
     setIsLogged(isLoggedIn);
@@ -119,7 +123,15 @@ const Header = () => {
             {curLng === "zh" ? "EN" : "中"}
           </span>
         </CommonButton>
-
+        {/* 积分 */}
+        {isLogged && credits && (
+          <CommonButton className="w-14 h-7 flex items-center mr-2">
+            <span className="flex items-center text-sm font-normal text-[#3B3D2C]">
+              {credits.credits}
+              <IconCredit className="w-3.5 h-3.5 ml-1" />
+            </span>
+          </CommonButton>
+        )}
         {/* 头像或登录按钮 */}
         {isLogged ? (
           <div className=" cursor-pointer">
@@ -137,7 +149,6 @@ const Header = () => {
           </div>
         ) : (
           <CommonButton
-            className="w-7 h-7 flex items-center"
             onClick={() => {
               navigate("/login");
             }}

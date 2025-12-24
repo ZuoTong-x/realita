@@ -1,12 +1,12 @@
-import type { Character } from "@/types/Character";
+import type { CharacterInfo } from "@/types/Character";
 import { Skeleton, Popover } from "antd";
 import { cn } from "@/utils/style_utils";
 import { useRef } from "react";
 
 type CharacterSliderProps = {
-  characterList: Character[];
-  currentCharacter: Character | null;
-  changeCharacter: (character: Character) => void;
+  characterList: CharacterInfo[];
+  currentCharacter: CharacterInfo | null;
+  changeCharacter: (character: CharacterInfo) => void;
 };
 
 const CharacterSlider = ({
@@ -14,13 +14,15 @@ const CharacterSlider = ({
   currentCharacter,
   changeCharacter,
 }: CharacterSliderProps) => {
-  const getCharacterOrder = (character: Character): number => {
+  const getCharacterOrder = (character: CharacterInfo): number => {
     if (!currentCharacter || characterList.length === 0) return 0;
     const len = characterList.length;
     const currentIdx = characterList.findIndex(
-      (c) => c.id === currentCharacter.id
+      (c) => c.character_id === currentCharacter.character_id
     );
-    const charIdx = characterList.findIndex((c) => c.id === character.id);
+    const charIdx = characterList.findIndex(
+      (c) => c.character_id === character.character_id
+    );
     if (currentIdx === -1 || charIdx === -1) return 0;
 
     const center = Math.floor(len / 2);
@@ -37,7 +39,9 @@ const CharacterSlider = ({
   const stepToIndex = (targetIdx: number) => {
     if (!currentCharacter || characterList.length === 0) return;
     const len = characterList.length;
-    let curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    let curIdx = characterList.findIndex(
+      (c) => c.character_id === currentCharacter.character_id
+    );
     if (curIdx === -1 || targetIdx === curIdx) return;
     const forward = (targetIdx - curIdx + len) % len; // steps if going forward
     const backward = (curIdx - targetIdx + len) % len; // steps if going backward
@@ -72,11 +76,11 @@ const CharacterSlider = ({
             const isCenter = order === center;
             return (
               <Popover
-                key={character.id}
+                key={character.character_id}
                 content={
                   <img
-                    src={character.image}
-                    alt={character.name}
+                    src={character.image.url}
+                    alt={character.character_name}
                     className="w-[200px] h-[264px] object-cover rounded-2xl overflow-hidden"
                   />
                 }
@@ -99,14 +103,14 @@ const CharacterSlider = ({
                   }}
                   onClick={() => {
                     const targetIdx = characterList.findIndex(
-                      (c) => c.id === character.id
+                      (c) => c.character_id === character.character_id
                     );
                     stepToIndex(targetIdx);
                   }}
                 >
                   <img
-                    src={character.image}
-                    alt={character.name}
+                    src={character.image.url}
+                    alt={character.character_name}
                     className={cn(
                       "w-full h-full object-cover transition-all duration-300",
                       isCenter ? "rounded-full" : "rounded-[50%]"

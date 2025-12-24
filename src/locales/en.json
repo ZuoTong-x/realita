@@ -18,7 +18,9 @@
     "language_en": "English",
     "copied_to_clipboard": "Copied to clipboard",
     "open_camera": "Click to open camera",
-    "network_error": "Network error"
+    "network_error": "Network error",
+    "no_data": "No Data",
+    "error": "System Error"
   },
   "login": {
     "login": "Log in",
@@ -56,7 +58,12 @@
     "end_conversation": "End conversation",
     "service_running": "Service is running",
     "service_stopped": "Service is stopped",
-    "service_not_started": "Service is not started"
+    "service_not_started": "Service is not started",
+    "positive_prompt": "Positive Prompt",
+    "negative_prompt": "Negative Prompt",
+    "positive_prompt_placeholder": "Please enter positive prompt...",
+    "negative_prompt_placeholder": "Please enter negative/exclusion prompt...",
+    "select_voice": "Select Voice"
   },
   "character": {
     "character_creating": "Character creating...",

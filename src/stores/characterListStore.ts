@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import type { Character } from "../types";
+import type { CharacterInfo } from "../types";
 
 type CharacterListStore = {
-  characterList: Character[];
-  setCharacterList: (characterList: Character[]) => void;
-  currentCharacter: Character | null;
-  setCurrentCharacter: (currentCharacter: Character | null) => void;
+  characterList: CharacterInfo[];
+  setCharacterList: (characterList: CharacterInfo[]) => void;
+  currentCharacter: CharacterInfo | null;
+  setCurrentCharacter: (currentCharacter: CharacterInfo | null) => void;
 };
 
 const useCharacterListStore = create<CharacterListStore>((set) => ({

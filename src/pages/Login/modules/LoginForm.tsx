@@ -2,15 +2,10 @@ import { useState } from "react";
 import IconGoogle from "@/assets/svg/IconGoogle.svg?react";
 import { useTranslation } from "react-i18next";
 import { useGoogleLogin } from "@react-oauth/google";
-import {
-  fetchCreditsDetail,
-  fetchUserInfoDetail,
-  reqLogin,
-  sendCaptcha,
-  verifyCaptcha,
-} from "@/api";
+
+import { signInWithGoogle, getUserCredits } from "@/api/login";
 import useUserStore from "@/stores/userStore";
-import type { CreditInfo, TokenInfo, UserInfo } from "@/types";
+import type { TokenInfo } from "@/types";
 import { App } from "antd";
 import { saveRefreshToken, saveToken } from "@/utils/user_util";
 
@@ -19,12 +14,7 @@ import useCountdown from "@/hooks/useCountdown";
 const LoginForm = () => {
   const { t } = useTranslation();
   const { message } = App.useApp();
-  const { loginStore, setUserStore, setCreditStore } =
-    useUserStore.getState() as {
-      loginStore: () => void;
-      setUserStore: (info: UserInfo) => void;
-      setCreditStore: (credit: CreditInfo) => void;
-    };
+  const { loginStore, setCreditStore } = useUserStore();
   const [formData, setFormData] = useState({ phone: "", captcha: "" });
   const [canLogin, setCanLogin] = useState(false);
   const [logging, setLogging] = useState(false);
@@ -50,12 +40,12 @@ const LoginForm = () => {
   // 验证 Google Token
   const verifyGLToken = async (accessToken: string) => {
     try {
-      const ret = await reqLogin(accessToken, "google");
-      if (ret.code !== 200) {
-        console.error("验证 Google Access Token 失败:", ret.msg);
+      const res = await signInWithGoogle(accessToken);
+      if (res.code !== 200) {
+        console.error("验证 Google Access Token 失败:", res.msg);
         return;
       }
-      handleSuccessResp(ret.data);
+      handleSuccessResp(res.data);
     } catch (error) {
       console.error("验证 Google Token 错误:", error);
       message.error(t("login.login_failed"));
@@ -74,17 +64,8 @@ const LoginForm = () => {
 
   // 获取用户信息&积分信息
   const fetchUserInfos = async () => {
-    // 获取用户信息
-    const iRet = await fetchUserInfoDetail();
-    if (iRet.code !== 200) {
-      console.error("获取用户信息失败:", iRet.msg);
-      message.error(iRet.msg ? iRet.msg : t("login.login_failed"));
-    } else {
-      setUserStore(iRet.data);
-    }
-
     // 获取用户积分信息
-    const cRet = await fetchCreditsDetail();
+    const cRet = await getUserCredits();
     if (cRet.code !== 200) {
       console.error("获取用户积分信息失败:", cRet.msg);
       message.error(cRet.msg ? cRet.msg : t("login.login_failed"));
@@ -103,59 +84,57 @@ const LoginForm = () => {
   };
 
   const handlePhoneLogin = async (event: React.FormEvent) => {
-    event.preventDefault(); // 阻止默认提交刷新页面
-    if (formData.phone === "") {
-      message.warning(t("login.login_phone_placeholder"));
-      return;
-    }
-    if (formData.captcha === "") {
-      message.warning(t("login.login_captcha_placeholder"));
-      return;
-    }
-    const tost = message.loading(t("login.login_fetching"));
-    setLogging(true);
-    try {
-      const res = await verifyCaptcha(formData.phone, formData.captcha);
-      if (res.code !== 200) {
-        message.error(res.msg || t("login.login_failed"));
-        return;
-      }
-      handleSuccessResp(res.data);
-    } catch (error) {
-      console.error("手机号登录失败:", error);
-      message.error(t("login.login_failed"));
-    } finally {
-      setLogging(false);
-      tost();
-    }
+    // event.preventDefault(); // 阻止默认提交刷新页面
+    // if (formData.phone === "") {
+    //   message.warning(t("login.login_phone_placeholder"));
+    //   return;
+    // }
+    // if (formData.captcha === "") {
+    //   message.warning(t("login.login_captcha_placeholder"));
+    //   return;
+    // }
+    // const tost = message.loading(t("login.login_fetching"));
+    // setLogging(true);
+    // try {
+    //   const res = await verifyCaptcha(formData.phone, formData.captcha);
+    //   if (res.code !== 200) {
+    //     message.error(res.msg || t("login.login_failed"));
+    //     return;
+    //   }
+    //   handleSuccessResp(res.data);
+    // } catch (error) {
+    //   console.error("手机号登录失败:", error);
+    //   message.error(t("login.login_failed"));
+    // } finally {
+    //   setLogging(false);
+    //   tost();
+    // }
   };
 
   // 发送验证码
   const handleCaptchaClick = async () => {
-    if (formData.phone === "") {
-      message.warning(t("login.login_phone_placeholder"));
-      return;
-    }
-    if (disabled) {
-      return;
-    }
-
-    try {
-      const ret = await sendCaptcha(formData.phone);
-
-      if (ret.code !== 200) {
-        message.error(ret.msg || t("login.send_captcha_failed"));
-        return;
-      }
-      const tost = message.loading(t("login.login_sending_captcha"), 0);
-      tost();
-      setHasSendCaptcha(true);
-      message.success(t("login.login_captcha_sent"));
-      startCountdown(ret.data.resend_delay_seconds);
-    } catch (error) {
-      console.error("发送验证码失败:", error);
-      message.error(t("login.send_captcha_failed"));
-    }
+    // if (formData.phone === "") {
+    //   message.warning(t("login.login_phone_placeholder"));
+    //   return;
+    // }
+    // if (disabled) {
+    //   return;
+    // }
+    // try {
+    //   const ret = await sendCaptcha(formData.phone);
+    //   if (ret.code !== 200) {
+    //     message.error(ret.msg || t("login.send_captcha_failed"));
+    //     return;
+    //   }
+    //   const tost = message.loading(t("login.login_sending_captcha"), 0);
+    //   tost();
+    //   setHasSendCaptcha(true);
+    //   message.success(t("login.login_captcha_sent"));
+    //   startCountdown(ret.data.resend_delay_seconds);
+    // } catch (error) {
+    //   console.error("发送验证码失败:", error);
+    //   message.error(t("login.send_captcha_failed"));
+    // }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

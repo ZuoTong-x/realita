@@ -1,13 +1,12 @@
-import type { ShowcaseExample } from "@/types";
+import type { Examples } from "@/types/Login";
 
-const IMG_PREFIX = import.meta.env.VITE_API_BASE?.replace("/api/v1", "") ?? "";
 const COLUMN_WIDTH = 120;
 const GALLERY_HEIGHT = "300vh";
 const ANIMATION_DELAYS = [0, 200, 400]; // ms
 
 // Gallery column component
 type GalleryColumnProps = {
-  col: ShowcaseExample[];
+  col: Examples[];
   colIdx: number;
 };
 
@@ -25,7 +24,7 @@ const GalleryColumn = ({ col, colIdx }: GalleryColumnProps) => {
         {[0, 1].map((stackKey) => (
           <div key={stackKey} className="flex flex-col gap-1">
             {col.map((item, i) => {
-              const imgUrl = item.image_url ?? item.video_url ?? "";
+              const imgUrl = item.image.url ?? item.video.url ?? "";
               return (
                 <div
                   key={`${stackKey}-${i}`}
@@ -36,7 +35,7 @@ const GalleryColumn = ({ col, colIdx }: GalleryColumnProps) => {
                   }}
                 >
                   <img
-                    src={IMG_PREFIX + imgUrl}
+                    src={imgUrl}
                     alt=""
                     className="w-full h-full object-cover rounded"
                     loading="lazy"

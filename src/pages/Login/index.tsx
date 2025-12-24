@@ -3,8 +3,8 @@ import LoginForm from "./modules/LoginForm";
 import "./index.css";
 
 import useCamera from "@/hooks/useCamera";
-import { getShowcaseExampleList } from "@/api";
-import type { ShowcaseExample } from "@/types";
+import { getShowcaseExampleList } from "@/api/login";
+import type { Examples } from "@/types/Login";
 
 import VideoCallOverlay from "./modules/VideoCallOverlay";
 import GalleryColumn from "./modules/GalleryColumn";
@@ -13,11 +13,7 @@ const NUM_COLUMNS = 3;
 
 const LoginPage = () => {
   const [muted, setMuted] = useState(true);
-  const [exampleList, setExampleList] = useState<ShowcaseExample[][]>([
-    [],
-    [],
-    [],
-  ]);
+  const [exampleList, setExampleList] = useState<Examples[][]>([[], [], []]);
 
   // 用户摄像头
   const {
@@ -37,10 +33,10 @@ const LoginPage = () => {
     const fetchData = async () => {
       try {
         const res = await getShowcaseExampleList();
-        const data = (res?.data ?? []) as ShowcaseExample[];
+        const data = (res?.data ?? []) as Examples[];
         const shuffled = [...data].sort(() => Math.random() - 0.5);
         // 三列：均匀分配
-        const cols: ShowcaseExample[][] = [[], [], []];
+        const cols: Examples[][] = [[], [], []];
         shuffled.forEach((item, idx) => {
           cols[idx % NUM_COLUMNS].push(item);
         });

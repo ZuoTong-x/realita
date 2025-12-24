@@ -57,9 +57,11 @@ export const fetchCreditsDetail = async (): Promise<
   return response.data;
 };
 
+/*
 // 获取用户信息（/me）
 export const fetchUserInfoDetail = async (): Promise<ApiResponse<UserInfo>> => {
   // Real request
   const response = await request.get<ApiResponse<UserInfo>>("/me");
   return response.data;
 };
+*/

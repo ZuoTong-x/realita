@@ -1,26 +1,17 @@
 import request from "./request";
 import type { ApiResponse } from "@/types";
 import type {
-  ShowcaseExample,
-  Character,
+  CharacterInfo,
   CharacterSettings,
   EditCharacterRequest,
-  VoiceOption,
-  ModelOption,
 } from "@/types";
-
-// 首页优秀示例列表 /showcase_examples
-export const getShowcaseExampleList = async (): Promise<
-  ApiResponse<ShowcaseExample[]>
-> => {
-  const response =
-    await request.get<ApiResponse<ShowcaseExample[]>>("/showcase_examples");
-  return response.data;
-};
+import type { Voice, Model } from "@/types/Character";
 
 // 主页获取角色列表 /get_user_characters
-export const getCharacterList = async (): Promise<ApiResponse<Character[]>> => {
-  const response = await request.get<ApiResponse<Character[]>>(
+export const getCharacterList = async (): Promise<
+  ApiResponse<CharacterInfo[]>
+> => {
+  const response = await request.get<ApiResponse<CharacterInfo[]>>(
     "/get_user_characters"
   );
   return response.data;
@@ -70,19 +61,13 @@ export const editCharacter = async (
 };
 
 // 音色列表 /voices_options
-export const getVoicesOptions = async (): Promise<
-  ApiResponse<VoiceOption[]>
-> => {
-  const response =
-    await request.get<ApiResponse<VoiceOption[]>>("/voices_options");
+export const getVoicesOptions = async (): Promise<ApiResponse<Voice[]>> => {
+  const response = await request.get<ApiResponse<Voice[]>>("/voice_options");
   return response.data;
 };
 
 // 模型列表 /models_options
-export const getModelsOptions = async (): Promise<
-  ApiResponse<ModelOption[]>
-> => {
-  const response =
-    await request.get<ApiResponse<ModelOption[]>>("/models_options");
+export const getModelsOptions = async (): Promise<ApiResponse<Model[]>> => {
+  const response = await request.get<ApiResponse<Model[]>>("/model_options");
   return response.data;
 };

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Skeleton } from "antd";
-import type { Character } from "@/types/Character";
+import type { CharacterInfo } from "@/types/Character";
 import CommonButton from "@/components/Common/Button";
 import IconArrow from "@/assets/svg/IconArrow.svg?react";
 import { cn } from "@/utils/style_utils";
@@ -14,7 +14,7 @@ import useCharacterListStore from "@/stores/characterListStore";
 type CharacterSwiperProps = {
   // registerPause?: (pauseFn: () => void) => void;
   // registerPlay?: (playFn: () => void) => void;
-  onChat: (character: Character) => void;
+  onChat: (character: CharacterInfo) => void;
 };
 
 const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
@@ -31,12 +31,27 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const visibleList = useMemo(() => {
     if (!currentCharacter || characterList.length === 0) return [];
     const len = characterList.length;
-    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    const curIdx = characterList.findIndex(
+      (c) => c.character_id === currentCharacter.character_id
+    );
     if (curIdx === -1) return [];
-    const res: Character[] = [];
-    for (let o = -3; o <= 3; o++) {
-      const idx = (curIdx + o + len) % len;
-      res.push(characterList[idx]);
+
+    const res: { item: CharacterInfo; offset: number }[] = [];
+
+    // 如果数据量足够，显示 7 个（-3 到 3）
+    if (len >= 7) {
+      for (let o = -3; o <= 3; o++) {
+        const idx = (curIdx + o + len) % len;
+        res.push({ item: characterList[idx], offset: o });
+      }
+    } else {
+      // 如果数据量不足，仅显示实际数量，并尽量居中
+      const startOffset = -Math.floor((len - 1) / 2);
+      for (let i = 0; i < len; i++) {
+        const o = startOffset + i;
+        const idx = (curIdx + o + len) % len;
+        res.push({ item: characterList[idx], offset: o });
+      }
     }
     return res;
   }, [characterList, currentCharacter]);
@@ -148,7 +163,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     }
   };
 
-  const handleChat = (character: Character) => {
+  const handleChat = (character: CharacterInfo) => {
     onChat(character);
   };
 
@@ -194,7 +209,9 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const stepToIndex = (targetIdx: number) => {
     if (!currentCharacter || characterList.length === 0) return;
     const len = characterList.length;
-    let curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    let curIdx = characterList.findIndex(
+      (c) => c.character_id === currentCharacter.character_id
+    );
     if (curIdx === -1 || targetIdx === curIdx) return;
     const forward = (targetIdx - curIdx + len) % len;
     const backward = (curIdx - targetIdx + len) % len;
@@ -205,7 +222,9 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         stepTimerRef.current = null;
         return;
       }
-      curIdx = characterList.findIndex((c) => c.id === currentCharacter!.id);
+      curIdx = characterList.findIndex(
+        (c) => c.character_id === currentCharacter.character_id
+      );
       const nextIdx = (curIdx + dir + len) % len;
       setCurrentCharacter(characterList[nextIdx]);
       steps -= 1;
@@ -220,13 +239,17 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
 
   const goNext = () => {
     if (!currentCharacter || characterList.length === 0) return;
-    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    const curIdx = characterList.findIndex(
+      (c) => c.character_id === currentCharacter.character_id
+    );
     const nextIdx = (curIdx + 1) % characterList.length;
     stepToIndex(nextIdx);
   };
   const goPrev = () => {
     if (!currentCharacter || characterList.length === 0) return;
-    const curIdx = characterList.findIndex((c) => c.id === currentCharacter.id);
+    const curIdx = characterList.findIndex(
+      (c) => c.character_id === currentCharacter.character_id
+    );
     const prevIdx = (curIdx - 1 + characterList.length) % characterList.length;
     stepToIndex(prevIdx);
   };
@@ -241,17 +264,16 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
             "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
           )}
         >
-          {visibleList.map((character: Character, idx: number) => {
-            const offset = idx - 3; // -3..3
+          {visibleList.map(({ item: character, offset }, idx: number) => {
             const isCenter = offset === 0;
             return (
               <div
-                key={character.id}
+                key={character.character_id}
                 style={getCardStyleByOffset(offset)}
                 className={getCardClassByOffset(offset)}
                 onClick={() => {
                   const targetIdx = characterList.findIndex(
-                    (c) => c.id === character.id
+                    (c) => c.character_id === character.character_id
                   );
                   if (targetIdx !== -1) stepToIndex(targetIdx);
                 }}
@@ -273,8 +295,8 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                   }}
                 >
                   <video
-                    src={character.voice}
-                    poster={character.image}
+                    src={character.video.url}
+                    poster={character.image.url}
                     autoPlay={false}
                     loop
                     muted={mutedAll}
@@ -284,7 +306,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                     }}
                     className="w-full h-full object-cover relative z-0"
                   >
-                    <source src={character.voice} type="video/mp4" />
+                    <source src={character.video.url} type="video/mp4" />
                   </video>
 
                   {isCenter && (
@@ -325,11 +347,11 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                 </div>
                 <div className="w-full h-[120px] bg-[#ffffff] p-3 flex flex-col justify-center gap-2">
                   <div className="w-full h-5 text-base font-medium">
-                    {character.name}
+                    {character.character_name}
                   </div>
                   {/* 描述  */}
                   <div className="w-full text-sm text-gray-500 line-clamp-2 h-10 leading-relaxed">
-                    {character.description}
+                    {character.llm_prompt}
                   </div>
                 </div>
               </div>

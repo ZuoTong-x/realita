@@ -2,7 +2,7 @@ import { Modal } from "antd";
 import IconDelete from "@/assets/svg/IconDelete.svg?react";
 import IconEdit from "@/assets/svg/IconEdit.svg?react";
 import IconShare from "@/assets/svg/IconShare.svg?react";
-import { CreateStatus, type Character } from "@/types/Character";
+import { CreateStatus, type CharacterInfo } from "@/types/Character";
 import { Ratio } from "@/types/Live";
 import useCharacterStore from "@/stores/characterStore";
 import { useTranslation } from "react-i18next";

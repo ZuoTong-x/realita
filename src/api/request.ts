@@ -1,58 +1,60 @@
-
-import axios from 'axios'
-import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios'
-import { getToken } from '../utils/user_util'
-import useUserStore from '../stores/userStore'
+import axios from "axios";
+import type {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+  AxiosResponse,
+  AxiosError,
+} from "axios";
+import { getToken } from "../utils/user_util";
+import useUserStore from "../stores/userStore";
 
 // 创建 Axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE, // 根据环境变量自动切换
   timeout: 10000, // 10 秒超时
-})
+});
 
 // 请求拦截器
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getToken()
+    const token = getToken();
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
-
+);
 
 // 响应拦截器
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    return response
+    return response;
   },
   async (error: AxiosError) => {
     // 可以统一处理错误
     if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNABORTED') {
-        console.error('请求超时！')
+      if (error.code === "ECONNABORTED") {
+        console.error("请求超时！");
       } else if (error.response) {
-        console.error('请求错误状态码：', error.response.status)
-        const status = error.response.status
+        console.error("请求错误状态码：", error.response.status);
+        const status = error.response.status;
         if (status === 401) {
-          console.error("未授权访问，请登录后重试")
+          console.error("未授权访问，请登录后重试");
 
-          const userStore = useUserStore.getState()
-          userStore.logoutStore()     // 清理用户状态
-          userStore.showLoginModal()  // 打开登录弹窗
+          const userStore = useUserStore.getState();
+          userStore.logoutStore(); // 清理用户状态
         } else {
-          console.error("请求错误状态码：", status)
+          console.error("请求错误状态码：", status);
         }
       } else {
-        console.error('请求发生错误：', error.message)
+        console.error("请求发生错误：", error.message);
       }
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
-export default request
+export default request;

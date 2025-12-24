@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { Modal, Input, App } from "antd";
 
 import { useTranslation } from "react-i18next";
@@ -21,21 +27,30 @@ import IconRefresh from "@/assets/svg/IconRefresh.svg?react";
 import IconAdd from "@/assets/svg/IconAdd.svg?react";
 import IconWave from "@/assets/svg/IconWave.svg?react";
 
-import VoiceModal from "./VoiceModal";
-import {
-  getVoicesList,
-  getServiceStatus,
-  startService,
-  stopService,
-} from "@/api/demo";
-import type { Voice, StartServicePayload } from "@/types/Live";
+import VoiceModal, { type ProcessedVoice } from "./VoiceModal";
+import { getServiceStatus, startService, stopService } from "@/api/demo";
+import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
+import type { StartServicePayload } from "@/types/Live";
+import type { Voice } from "@/types/Character";
 import { fileToDataURL } from "@/utils/file_util";
 
-import type { Character } from "@/types/Character";
+import type { CharacterInfo } from "@/types/Character";
+const languageList = [
+  { label_zh: "中文", label_en: "chinese", key: "chinese" },
+  { label_zh: "日文", label_en: "japanese", key: "ja" },
+  { label_zh: "英文", label_en: "english", key: "en_us" },
+  // {label_zh:'韩文',label_en:"korean",key:'korean'},
+  // {label_zh:'法文',label_en:"french",key:'french'},
+  // {label_zh:'德文',label_en:"german",key:'german'},
+  // {label_zh:'意大利文',label_en:"italian",key:'italian'},
+  // {label_zh:'西班牙文',label_en:"spanish",key:'spanish'},
+  // {label_zh:'葡萄牙文',label_en:"portuguese",key:'portuguese'},
+  // {label_zh:'俄文',label_en:"russian",key:'russian'},
+];
 
 type CharacterCreateProps = {
   open: boolean;
-  characterInfo?: Character | null;
+  characterInfo?: CharacterInfo | null;
   onClose: () => void;
 };
 const defaultModelName = "SekoTalk";
@@ -105,10 +120,68 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     return serviceStatus === "running";
   }, [serviceStatus]);
 
-  const [voice, setVoice] = useState<Voice | null>(null);
+  const [voice, setVoice] = useState<ProcessedVoice | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceList, setVoiceList] = useState<Voice[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const { processedVoiceList, typeList } = useMemo(() => {
+    const processed: ProcessedVoice[] = voiceList.map((v) => {
+      // 1. 根据 languageList 的 key 找出 labels 中代表语言的数据
+      const langKey = v.labels?.find((label) =>
+        languageList.some((lang) => lang.key === label)
+      );
+      const langInfo = languageList.find((l) => l.key === langKey);
+
+      // 2. 去掉语言 key 之后，遍历剩下的数据，判断中英文类别
+      const remainingLabels =
+        v.labels?.filter((label) => label !== langKey) || [];
+
+      let typeZh = "";
+      let typeEn = "";
+
+      remainingLabels.forEach((label) => {
+        // 判断是否包含中文字符
+        if (/[\u4e00-\u9fa5]/.test(label)) {
+          typeZh = label;
+        } else if (label) {
+          typeEn = label;
+        }
+      });
+
+      return {
+        ...v,
+        language: langInfo
+          ? {
+              key: langInfo.key,
+              label_zh: langInfo.label_zh,
+              label_en: langInfo.label_en,
+            }
+          : null,
+        type: { zh: typeZh, en: typeEn, key: typeEn },
+      };
+    });
+
+    // 3. 遍历 list 的 type，去重后组成
+    const typesMap = new Map<string, { zh: string; en: string; key: string }>();
+    processed.forEach((v) => {
+      if (v.type.zh || v.type.en) {
+        const uniqueKey = v.type.key;
+        if (!typesMap.has(uniqueKey)) {
+          typesMap.set(uniqueKey, v.type);
+        }
+      }
+    });
+
+    const finalTypeList = Array.from(typesMap.values());
+    // 添加“全部”选项
+    const allType = { zh: "全部", en: "All", key: "全部" };
+
+    return {
+      processedVoiceList: processed,
+      typeList: [allType, ...finalTypeList],
+    };
+  }, [voiceList]);
 
   const formatModelName = (model: LipSyncModelInfo): string => {
     if (i18n.language === "zh") {
@@ -214,7 +287,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           }
         }
       }
-    } catch (e) {
+    } catch {
       // 如果导出失败，不阻塞创建流程
       message.error(t("common.error") ?? "Error");
     }
@@ -228,19 +301,29 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     }
   };
   const getVoiceListFunc = useCallback(async () => {
-    const res = await getVoicesList();
-    if (res.success) {
-      setVoiceList(res.data.voices);
+    const res = await getVoicesOptions();
+    if (res.code === 200) {
+      setVoiceList(res.data);
+    }
+  }, []);
+  const getModelsListFunc = useCallback(async () => {
+    const res = await getModelsOptions();
+    if (res.code === 200) {
+      setLipSyncModels(
+        res.data.map((item) => ({
+          label_en: item.name_en ?? "",
+          label_zh: item.name_zh ?? "",
+          motion_style: LipSyncMotionStyle.DYNAMIC,
+        }))
+      );
     }
   }, []);
   const getServiceStatusFunc = useCallback(async () => {
-    const statusRes = await getServiceStatus();
-    if (statusRes.success) {
-      setServiceStatus(statusRes.data.status);
-    } else {
-      message.error(statusRes.message ?? "Error");
+    const res = await getServiceStatus();
+    if (res.success) {
+      setServiceStatus(res.data.status);
     }
-  }, [message]);
+  }, []);
 
   const init = useCallback(async () => {
     setPositivePrompt("The video features a person is saying something.");
@@ -256,17 +339,17 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       },
     ]);
     if (characterInfo) {
-      imgFileRef.current = new File([], characterInfo.image, {
+      imgFileRef.current = new File([], characterInfo.image.url, {
         type: "image/png",
       });
-      setInputImgUrl(characterInfo.image);
+      setInputImgUrl(characterInfo.image.url);
     } else {
       imgFileRef.current = null;
       setInputImgUrl(null);
     }
     await getVoiceListFunc();
-    await getServiceStatusFunc();
-  }, [getVoiceListFunc, characterInfo]);
+    await getModelsListFunc();
+  }, [getVoiceListFunc, getModelsListFunc, characterInfo]);
 
   useEffect(() => {
     if (open) {
@@ -285,7 +368,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             value={chosenModel}
             onChange={handleModelChange}
             formatLabel={formatModelName}
-            getKey={(item, index) => index}
+            getKey={(_, index) => index}
             isSelected={(item, value) =>
               value?.motion_style === item.motion_style
             }
@@ -294,7 +377,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             iconInactive={<IconModelGray className="w-4 h-4" />}
             iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
             showNewTag={(item) => item.motion_style === "dynamic"}
-            renderSelectedIcon={(item, isSelected) =>
+            renderSelectedIcon={(_, isSelected) =>
               isSelected ? (
                 <IconChosenBlack className="w-4 h-4 ml-3" />
               ) : (
@@ -389,7 +472,9 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
 
         {/* 正向 Prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
-          <label className="text-sm text-[#666] mb-1">正向提示词</label>
+          <label className="text-sm text-[#666] mb-1">
+            {t("home.positive_prompt")}
+          </label>
           <textarea
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
@@ -404,7 +489,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               overflow: "auto",
               outline: "none",
             }}
-            placeholder="请输入正向提示词..."
+            placeholder={t("home.positive_prompt_placeholder")}
           />
           <div className="flex flex-wrap gap-2 mt-2">
             {positiveTags.map((tag) => {
@@ -430,7 +515,9 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         </div>
         {/* 负面 Prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
-          <label className="text-sm text-[#666] mb-1">负面提示词</label>
+          <label className="text-sm text-[#666] mb-1">
+            {t("home.negative_prompt")}
+          </label>
           <textarea
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
@@ -445,7 +532,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               overflow: "auto",
               outline: "none",
             }}
-            placeholder="请输入反向/排除提示词..."
+            placeholder={t("home.negative_prompt_placeholder")}
           />
           <div className="flex flex-wrap gap-2 mt-2">
             {negativeTags.map((tag) => {
@@ -501,7 +588,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                 className="w-[calc(100%-20px)]  h-9 pl-[45px] bg-[#fff] rounded-2xl p-2 border-none outline-none"
                 value={
                   voice
-                    ? `${voice?.name}( ${voice?.gender})- ${voice?.scene}`
+                    ? `${voice.friendly_name}`
                     : t("home.please_select_voice")
                 }
                 readOnly
@@ -569,7 +656,8 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       <VoiceModal
         open={voiceModalOpen}
         onClose={() => setVoiceModalOpen(false)}
-        voiceList={voiceList}
+        voiceList={processedVoiceList}
+        typeList={typeList}
         onApply={(v) => {
           setVoice(v);
           setVoiceModalOpen(false);
