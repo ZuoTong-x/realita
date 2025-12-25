@@ -7,6 +7,7 @@ import type {
 } from "axios";
 import { getToken } from "../utils/user_util";
 import useUserStore from "../stores/userStore";
+import { navigation } from "@/utils/navigation";
 
 // 创建 Axios 实例
 const request: AxiosInstance = axios.create({
@@ -31,6 +32,12 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response: AxiosResponse) => {
+    if (response.data.code === 401) {
+      // 跳转登录页
+      const userStore = useUserStore.getState();
+      userStore.logoutStore(); // 清理用户状态
+      navigation.replace("/login");
+    }
     return response;
   },
   async (error: AxiosError) => {
@@ -46,6 +53,7 @@ request.interceptors.response.use(
 
           const userStore = useUserStore.getState();
           userStore.logoutStore(); // 清理用户状态
+          navigation.replace("/login");
         } else {
           console.error("请求错误状态码：", status);
         }

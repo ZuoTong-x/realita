@@ -4,12 +4,16 @@ import {
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
+import { useEffect } from "react";
 import type { AppRoute } from "./routes/route";
 import { routes } from "./routes/route";
 import { App as AntdApp, ConfigProvider } from "antd";
 import theme from "./theme";
 import useUserStore from "@/stores/userStore";
+
+import { navigation } from "@/utils/navigation";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -24,6 +28,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       state={{ from: location.pathname + location.search }}
     />
   );
+};
+
+const NavigateSetter = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigation.navigate = navigate;
+  }, [navigate]);
+  return null;
 };
 
 const renderRoutes = (routes: AppRoute[]) => {
@@ -50,6 +62,7 @@ const App = () => {
   const BASENAME = import.meta.env.BASE_URL;
   return (
     <BrowserRouter basename={BASENAME}>
+      <NavigateSetter />
       <ConfigProvider theme={theme}>
         <AntdApp>
           <Routes>{renderRoutes(routes)}</Routes>

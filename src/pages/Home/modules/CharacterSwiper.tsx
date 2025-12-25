@@ -316,7 +316,8 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                           size="large"
                           className="h-14 px-0 hover:scale-110 transition-transform duration-300"
                           borderRadiusPx={54}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleChat(character);
                           }}
                         >

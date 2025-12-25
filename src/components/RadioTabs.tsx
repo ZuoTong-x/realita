@@ -5,7 +5,7 @@ import type { SegmentedProps } from "antd";
 type RadioTabsProps = {
   tabsList: {
     label: string;
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     value: string;
     tooltip?: string;
     disabled?: boolean;
@@ -28,17 +28,21 @@ const RadioTabs = ({
       <div className="flex items-center gap-1">
         {iconPosition === "left" ? (
           <>
-            <span className="w-4 h-4 flex items-center justify-center">
-              {tab.icon}
-            </span>
+            {tab.icon && (
+              <span className="w-4 h-4 flex items-center justify-center">
+                {tab.icon}
+              </span>
+            )}
             <span className="text-[12px] tracking-[0.04em]">{tab.label}</span>
           </>
         ) : (
           <>
             <span className="text-[12px] tracking-[0.04em]">{tab.label}</span>
-            <span className="w-4 h-4 flex items-center justify-center">
-              {tab.icon}
-            </span>
+            {tab.icon && (
+              <span className="w-4 h-4 flex items-center justify-center">
+                {tab.icon}
+              </span>
+            )}
           </>
         )}
       </div>

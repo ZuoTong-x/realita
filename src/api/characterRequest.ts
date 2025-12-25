@@ -1,10 +1,6 @@
 import request from "./request";
 import type { ApiResponse } from "@/types";
-import type {
-  CharacterInfo,
-  CharacterSettings,
-  EditCharacterRequest,
-} from "@/types";
+import type { CharacterInfo, CharacterSettings } from "@/types";
 import type { Voice, Model } from "@/types/Character";
 
 // 主页获取角色列表 /get_user_characters
@@ -50,15 +46,15 @@ export const deleteCharacter = async (
 };
 
 // 编辑角色 /edit_character
-export const editCharacter = async (
-  editCharacterRequest: EditCharacterRequest
-): Promise<ApiResponse<CharacterSettings>> => {
-  const response = await request.put<ApiResponse<CharacterSettings>>(
-    `/edit_character`,
-    { data: editCharacterRequest }
-  );
-  return response.data;
-};
+// export const editCharacter = async (
+//   editCharacterRequest: EditCharacterRequest
+// ): Promise<ApiResponse<CharacterSettings>> => {
+//   const response = await request.put<ApiResponse<CharacterSettings>>(
+//     `/edit_character`,
+//     { data: editCharacterRequest }
+//   );
+//   return response.data;
+// };
 
 // 音色列表 /voices_options
 export const getVoicesOptions = async (): Promise<ApiResponse<Voice[]>> => {
@@ -69,5 +65,40 @@ export const getVoicesOptions = async (): Promise<ApiResponse<Voice[]>> => {
 // 模型列表 /models_options
 export const getModelsOptions = async (): Promise<ApiResponse<Model[]>> => {
   const response = await request.get<ApiResponse<Model[]>>("/model_options");
+  return response.data;
+};
+
+// 获取音色收藏列表 /get_user_favorite_voices
+
+export const getUserFavoriteVoices = async (): Promise<
+  ApiResponse<{ voice_ids: string[] }>
+> => {
+  const response = await request.get<ApiResponse<{ voice_ids: string[] }>>(
+    "/get_user_favorite_voices"
+  );
+  return response.data;
+};
+
+// 添加音色收藏 /add_voice_to_user_favorite
+
+export const addVoiceToUserFavorite = async (
+  voiceId: string
+): Promise<ApiResponse<null>> => {
+  const response = await request.post<ApiResponse<null>>(
+    "/add_voice_to_user_favorite",
+    { voice_id: voiceId }
+  );
+  return response.data;
+};
+
+// 删除音色收藏 /remove_voice_from_user_favorite
+
+export const removeVoiceFromUserFavorite = async (
+  voiceId: string
+): Promise<ApiResponse<null>> => {
+  const response = await request.delete<ApiResponse<null>>(
+    "/remove_voice_from_user_favorite",
+    { data: { voice_id: voiceId } }
+  );
   return response.data;
 };

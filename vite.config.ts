@@ -25,6 +25,13 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "0.0.0.0", // 监听所有网卡
       port: 8080,
+      proxy: {
+        "/oss-proxy": {
+          target: "http://aoss.cn-sh-01b.sensecoreapi-oss.cn",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/oss-proxy/, ""),
+        },
+      },
     },
     optimizeDeps: {
       exclude: ["@ffmpeg/ffmpeg"], // 排除 @ffmpeg/ffmpeg 以防止预打包

@@ -1,18 +1,9 @@
-export interface ShowcaseExample {
-  id: string;
-  image: string;
-  video: string;
-}
 export interface Character {
   id: string;
   name: string;
   description: string;
   image: string;
   voice: string;
-
-  // userInfo: UserInfo;
-  // created_at: string;
-  // updated_at: string;
 }
 
 export enum CreateStatus {
@@ -44,28 +35,6 @@ export interface CharacterSettings {
   number_of_likes: number;
 }
 
-export interface EditCharacterRequest {
-  character_id: string;
-  name: string;
-
-  prompt: string;
-  voice_id: string;
-  image_id: string;
-  model_id: string;
-}
-
-export interface VoiceOption {
-  id: string;
-  name_zh: string;
-  name_en: string;
-}
-
-export interface ModelOption {
-  id: string;
-  name_zh: string;
-  name_en: string;
-}
-
 export interface CharacterInfo {
   character_id: string;
   character_name: string;
@@ -78,6 +47,12 @@ export interface CharacterInfo {
   video_model_name_zh: string;
   video_prompt: string;
   voice: Voice;
+}
+
+export interface ProcessedVoice extends Voice {
+  language: { key: string; label_zh: string; label_en: string } | null;
+  gender: { key: string; label_zh: string; label_en: string } | null;
+  type: { zh: string; en: string; key: string };
 }
 
 export interface Image {
@@ -144,26 +119,7 @@ export interface Voice {
    */
   sample_asset: SampleAsset;
 }
-export interface VoiceOption {
-  /**
-   * 音色在前端显示的名称。
-   */
-  friendly_name: string;
-  /**
-   * 音色主键。
-   */
-  id: string;
-  /**
-   * 音色的标注标签，列表长度可能为0.
-   */
-  labels: string[];
-  /**
-   * 音色的试听音频资产，如果试听音频不存在，则返回null.
-   */
-  sample_asset: SampleAsset;
-  language: { key: string; label_zh: string; label_en: string };
-  type: { label_zh: string; label_en: string; key: string };
-}
+
 /**
  * 音色的试听音频资产，如果试听音频不存在，则返回null.
  */

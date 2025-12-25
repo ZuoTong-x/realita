@@ -1,19 +1,13 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Modal, Input, App } from "antd";
-
 import { useTranslation } from "react-i18next";
-import type { LipSyncModelInfo } from "@/types/Character";
-import { LipSyncMotionStyle } from "@/types/Character";
-import CommonButton from "@/components/Common/Button";
-import DropdownMenu from "@/components/DropdownMenu";
+import { cn } from "@/utils/style_utils";
 import Cropper, { type ReactCropperElement } from "react-cropper";
 import "./cropper.css";
+
+import CommonButton from "@/components/Common/Button";
+import DropdownMenu from "@/components/DropdownMenu";
+import VoiceModal from "./VoiceModal";
 
 import IconRoleAdd from "@/assets/svg/IconRoleAdd.svg?react";
 import IconCloseBGBlur from "@/assets/svg/IconCloseBGBlur.svg?react";
@@ -23,37 +17,36 @@ import IconModelGray from "@/assets/svg/IconModelGray.svg?react";
 import IconArrowDownBlack from "@/assets/svg/IconArrowDownBlack.svg?react";
 import IconStar from "@/assets/svg/IconStar.svg?react";
 import IconRefresh from "@/assets/svg/IconRefresh.svg?react";
-
 import IconAdd from "@/assets/svg/IconAdd.svg?react";
 import IconWave from "@/assets/svg/IconWave.svg?react";
 
-import VoiceModal, { type ProcessedVoice } from "./VoiceModal";
-import { getServiceStatus, startService, stopService } from "@/api/demo";
 import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
-import type { StartServicePayload } from "@/types/Live";
-import type { Voice } from "@/types/Character";
-import { fileToDataURL } from "@/utils/file_util";
+import { useLiveService } from "@/hooks/useLiveService";
+import { useVoiceProcessing } from "@/hooks/useVoiceProcessing";
+import {
+  POSITIVE_TAGS,
+  NEGATIVE_TAGS,
+  DEFAULT_POSITIVE_PROMPT,
+  DEFAULT_NEGATIVE_PROMPT,
+} from "@/constants";
 
-import type { CharacterInfo } from "@/types/Character";
-const languageList = [
-  { label_zh: "中文", label_en: "chinese", key: "chinese" },
-  { label_zh: "日文", label_en: "japanese", key: "ja" },
-  { label_zh: "英文", label_en: "english", key: "en_us" },
-  // {label_zh:'韩文',label_en:"korean",key:'korean'},
-  // {label_zh:'法文',label_en:"french",key:'french'},
-  // {label_zh:'德文',label_en:"german",key:'german'},
-  // {label_zh:'意大利文',label_en:"italian",key:'italian'},
-  // {label_zh:'西班牙文',label_en:"spanish",key:'spanish'},
-  // {label_zh:'葡萄牙文',label_en:"portuguese",key:'portuguese'},
-  // {label_zh:'俄文',label_en:"russian",key:'russian'},
-];
+import type { StartServicePayload } from "@/types/Live";
+import type {
+  Voice,
+  ProcessedVoice,
+  CharacterInfo,
+  LipSyncModelInfo,
+} from "@/types/Character";
+import { LipSyncMotionStyle } from "@/types/Character";
+import { fileToDataURL } from "@/utils/file_util";
 
 type CharacterCreateProps = {
   open: boolean;
   characterInfo?: CharacterInfo | null;
   onClose: () => void;
 };
-const defaultModelName = "SekoTalk";
+
+const DEFAULT_MODEL_NAME = "SekoTalk";
 
 const CharacterCreate: React.FC<CharacterCreateProps> = ({
   open,
@@ -61,48 +54,37 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   characterInfo,
 }) => {
   const { message } = App.useApp();
-  const [inputImgUrl, setInputImgUrl] = useState<string | null>(null);
+  const { t, i18n } = useTranslation();
+
+  // --- Refs ---
   const imgInputRef = useRef<HTMLInputElement>(null);
   const imgFileRef = useRef<File | null>(null);
   const cropperRef = useRef<ReactCropperElement>(null);
-  const [chosenModel, setChosenModel] = useState<LipSyncModelInfo | null>(null);
-  const [lipSyncModels, setLipSyncModels] = useState<LipSyncModelInfo[]>([]);
-  const { t, i18n } = useTranslation();
-  // prompts
+
+  // --- State ---
+  const [inputImgUrl, setInputImgUrl] = useState<string | null>(null);
   const [positivePrompt, setPositivePrompt] = useState<string>("");
   const [negativePrompt, setNegativePrompt] = useState<string>("");
-  const positiveTags = ["高质量", "4k", "高清", "细节丰富"];
-  const negativeTags = [
-    "镜头晃动",
-    "色调艳丽",
-    "过曝",
-    "静态",
-    "细节模糊不清",
-    "字幕",
-    "风格",
-    "作品",
-    "画作",
-    "画面",
-    "静止",
-    "整体发灰",
-    "最差质量",
-    "低质量",
-    "JPEG压缩残留",
-    "丑陋的",
-    "残缺的",
-    "多余的手指",
-    "画得不好的手部",
-    "画得不好的脸部",
-    "畸形的",
-    "毁容的",
-    "形态畸形的肢体",
-    "手指融合",
-    "静止不动的画面",
-    "杂乱的背景",
-    "三条腿",
-    "背景人很多",
-    "倒着走",
-  ];
+  const [chosenModel, setChosenModel] = useState<LipSyncModelInfo | null>(null);
+  const [lipSyncModels, setLipSyncModels] = useState<LipSyncModelInfo[]>([]);
+  const [voice, setVoice] = useState<ProcessedVoice | null>(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [voiceList, setVoiceList] = useState<Voice[]>([]);
+
+  // --- Custom Hooks ---
+  const {
+    serviceStatus,
+    setServiceStatus,
+    setSessionId,
+    isServiceRunning,
+    updateServiceStatus,
+    startLiveService,
+    stopLiveService,
+  } = useLiveService();
+
+  const { processedVoiceList, typeList } = useVoiceProcessing(voiceList);
+
+  // --- Functions ---
   const insertTag = (
     value: string,
     setter: (v: string) => void,
@@ -113,266 +95,155 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     }
   };
 
-  const [serviceStatus, setServiceStatus] = useState<
-    "idle" | "running" | "stopped"
-  >("idle");
-  const isServiceRunning = useCallback(() => {
-    return serviceStatus === "running";
-  }, [serviceStatus]);
-
-  const [voice, setVoice] = useState<ProcessedVoice | null>(null);
-  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
-  const [voiceList, setVoiceList] = useState<Voice[]>([]);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-
-  const { processedVoiceList, typeList } = useMemo(() => {
-    const processed: ProcessedVoice[] = voiceList.map((v) => {
-      // 1. 根据 languageList 的 key 找出 labels 中代表语言的数据
-      const langKey = v.labels?.find((label) =>
-        languageList.some((lang) => lang.key === label)
-      );
-      const langInfo = languageList.find((l) => l.key === langKey);
-
-      // 2. 去掉语言 key 之后，遍历剩下的数据，判断中英文类别
-      const remainingLabels =
-        v.labels?.filter((label) => label !== langKey) || [];
-
-      let typeZh = "";
-      let typeEn = "";
-
-      remainingLabels.forEach((label) => {
-        // 判断是否包含中文字符
-        if (/[\u4e00-\u9fa5]/.test(label)) {
-          typeZh = label;
-        } else if (label) {
-          typeEn = label;
-        }
-      });
-
-      return {
-        ...v,
-        language: langInfo
-          ? {
-              key: langInfo.key,
-              label_zh: langInfo.label_zh,
-              label_en: langInfo.label_en,
-            }
-          : null,
-        type: { zh: typeZh, en: typeEn, key: typeEn },
-      };
-    });
-
-    // 3. 遍历 list 的 type，去重后组成
-    const typesMap = new Map<string, { zh: string; en: string; key: string }>();
-    processed.forEach((v) => {
-      if (v.type.zh || v.type.en) {
-        const uniqueKey = v.type.key;
-        if (!typesMap.has(uniqueKey)) {
-          typesMap.set(uniqueKey, v.type);
-        }
-      }
-    });
-
-    const finalTypeList = Array.from(typesMap.values());
-    // 添加“全部”选项
-    const allType = { zh: "全部", en: "All", key: "全部" };
-
-    return {
-      processedVoiceList: processed,
-      typeList: [allType, ...finalTypeList],
-    };
-  }, [voiceList]);
-
   const formatModelName = (model: LipSyncModelInfo): string => {
-    if (i18n.language === "zh") {
-      // 中文
-      return model.label_zh;
-    } else {
-      // 默认英文
-      return model.label_en;
-    }
+    return i18n.language === "zh" ? model.label_zh : model.label_en;
   };
 
-  //上传图片
   const handleImgFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const input = event.target;
-    const file = input.files?.[0];
-    if (!file) {
-      input.value = "";
-      return;
-    }
+    const file = event.target.files?.[0];
+    if (!file) return;
     imgFileRef.current = file;
     setInputImgUrl(URL.createObjectURL(file));
-
-    input.value = "";
+    event.target.value = "";
   };
-  //移除图片
+
   const handleRemoveImg = () => {
     setInputImgUrl(null);
-
     imgFileRef.current = null;
-    if (imgInputRef.current) {
-      imgInputRef.current.value = "";
-    }
+    if (imgInputRef.current) imgInputRef.current.value = "";
   };
-  const handleModelChange = (model: LipSyncModelInfo) => {
-    setChosenModel(model);
-  };
+
   const createCharacter = async () => {
     if (!cropperRef.current || !inputImgUrl) {
       message.error(t("home.please_upload_image"));
       return;
     }
-    // if (!voice) {
-    //   message.error(t("home.please_select_voice") ?? "Error");
-    //   return;
-    // }
 
     try {
-      // 如果有裁剪器与原始图片，则基于裁剪结果更新 imageInfo
-      if (cropperRef.current && inputImgUrl) {
-        const cropper = cropperRef.current.cropper;
-        const canvas = cropper.getCroppedCanvas({
-          width: 640,
-          height: 480,
-          imageSmoothingEnabled: true,
-          imageSmoothingQuality: "high",
-        });
-        const mime = imgFileRef.current?.type || "image/png";
-        const ext = mime.split("/")[1] || "png";
-        const blob: Blob | null = await new Promise((resolve) =>
-          canvas.toBlob((b) => resolve(b), mime)
-        );
-        if (blob) {
-          const file = new File([blob], `cropped-image.${ext}`, {
-            type: mime,
-          });
-          const base64 = await fileToDataURL(file);
-          const startServicePayload: StartServicePayload = {
-            account: "default",
-            aiConfig: {
-              task: "s2v", // 任务类型 常量
-              model_cls: "SekoTalk", // 模型类型 常量
-              stage: "single_stage", // 阶段类型 常量
-              inputImage: base64, // 经过base64编码后的图片数据
-              inputImageType: mime, // 根据图片文件动态确定的类型
-              // huoshan_tts_voice_type: voice.voice_type ||'',
-              huoshan_tts_voice_type: "ICL_zh_female_keainvsheng_tob",
-            },
-            promptConfig: {
-              prompt: positivePrompt,
-              negativePrompt: negativePrompt,
-            },
-          };
-          const startServiceRes = await startService(startServicePayload);
-          if (startServiceRes.success) {
-            setServiceStatus("running");
-            const whipUrl = startServiceRes.data.whipUrl;
-            const whepUrl = startServiceRes.data.whepUrl;
-            const lightx2vTaskId = startServiceRes.data.stream;
-            const stream = startServiceRes.data.stream;
-            localStorage.setItem("bgImg", URL.createObjectURL(file));
-            localStorage.setItem("whipUrl", whipUrl);
-            localStorage.setItem("whepUrl", whepUrl);
-            localStorage.setItem("lightx2vTaskId", lightx2vTaskId);
-            localStorage.setItem("stream", stream);
-            setSessionId(startServiceRes.data.sessionId);
-            // 新窗口
-            window.open(`/live/?stream=${stream}`, "_blank");
-            localStorage.setItem("bgImg", URL.createObjectURL(file));
-          } else {
-            message.error(startServiceRes.message ?? "Error");
-          }
-        }
+      const cropper = cropperRef.current.cropper;
+      const canvas = cropper.getCroppedCanvas({
+        width: 640,
+        height: 480,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: "high",
+      });
+      const mime = imgFileRef.current?.type || "image/png";
+      const ext = mime.split("/")[1] || "png";
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), mime)
+      );
+
+      if (blob) {
+        const file = new File([blob], `cropped-image.${ext}`, { type: mime });
+        const base64 = await fileToDataURL(file);
+        const payload: StartServicePayload = {
+          account: "default",
+          aiConfig: {
+            task: "s2v",
+            model_cls: "SekoTalk",
+            stage: "single_stage",
+            inputImage: base64,
+            inputImageType: mime,
+            huoshan_tts_voice_type: "ICL_zh_female_keainvsheng_tob",
+          },
+          promptConfig: {
+            prompt: positivePrompt,
+            negativePrompt: negativePrompt,
+          },
+        };
+        await startLiveService(payload, file);
       }
     } catch {
-      // 如果导出失败，不阻塞创建流程
-      message.error(t("common.error") ?? "Error");
+      message.error(t("common.error"));
     }
   };
-  const endService = async () => {
-    const endServiceRes = await stopService(sessionId ?? "id-placeholder");
-    if (endServiceRes.success) {
-      setServiceStatus("stopped");
-    } else {
-      message.error(endServiceRes.message ?? "Error");
-    }
-  };
-  const getVoiceListFunc = useCallback(async () => {
-    const res = await getVoicesOptions();
-    if (res.code === 200) {
-      setVoiceList(res.data);
-    }
-  }, []);
-  const getModelsListFunc = useCallback(async () => {
-    const res = await getModelsOptions();
-    if (res.code === 200) {
-      setLipSyncModels(
-        res.data.map((item) => ({
-          label_en: item.name_en ?? "",
-          label_zh: item.name_zh ?? "",
-          motion_style: LipSyncMotionStyle.DYNAMIC,
-        }))
-      );
-    }
-  }, []);
-  const getServiceStatusFunc = useCallback(async () => {
-    const res = await getServiceStatus();
-    if (res.success) {
-      setServiceStatus(res.data.status);
+
+  const fetchOptions = useCallback(async () => {
+    const [vRes, mRes] = await Promise.all([
+      getVoicesOptions(),
+      getModelsOptions(),
+    ]);
+    if (vRes.code === 200) setVoiceList(vRes.data);
+    if (mRes.code === 200) {
+      const models = mRes.data.map((item) => ({
+        label_en: item.name_en ?? "",
+        label_zh: item.name_zh ?? "",
+        motion_style: LipSyncMotionStyle.DYNAMIC,
+      }));
+      setLipSyncModels(models);
+      if (models.length > 0) setChosenModel(models[0]);
     }
   }, []);
 
   const init = useCallback(async () => {
-    setPositivePrompt("The video features a person is saying something.");
-    setNegativePrompt(
-      "镜头晃动，色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
-    );
+    setPositivePrompt(characterInfo?.llm_prompt || DEFAULT_POSITIVE_PROMPT);
+    setNegativePrompt(characterInfo?.video_prompt || DEFAULT_NEGATIVE_PROMPT);
 
-    setLipSyncModels([
-      {
-        label_en: "SekoTalk",
-        label_zh: "SekoTalk",
-        motion_style: LipSyncMotionStyle.DYNAMIC,
-      },
-    ]);
     if (characterInfo) {
-      imgFileRef.current = new File([], characterInfo.image.url, {
-        type: "image/png",
-      });
-      setInputImgUrl(characterInfo.image.url);
+      const ossDomain = "http://aoss.cn-sh-01b.sensecoreapi-oss.cn";
+      const proxyUrl = characterInfo.image.url.replace(ossDomain, "/oss-proxy");
+      fetch(proxyUrl)
+        .then((res) => (res.ok ? res.blob() : Promise.reject()))
+        .then((blob) => {
+          const mime = characterInfo.image.mime || "image/png";
+          const ext = mime.split("/")[1] || "png";
+          imgFileRef.current = new File([blob], `image.${ext}`, { type: mime });
+          setInputImgUrl(URL.createObjectURL(blob));
+        })
+        .catch(() => setInputImgUrl(characterInfo.image.url));
     } else {
       imgFileRef.current = null;
       setInputImgUrl(null);
+      setVoice(null);
     }
-    await getVoiceListFunc();
-    await getModelsListFunc();
-  }, [getVoiceListFunc, getModelsListFunc, characterInfo]);
+    await fetchOptions();
+  }, [characterInfo, fetchOptions]);
+
+  // --- Effects ---
+  useEffect(() => {
+    if (characterInfo && processedVoiceList.length > 0) {
+      const target = processedVoiceList.find(
+        (v) => v.id === characterInfo.voice.id
+      );
+      if (target) setVoice(target);
+    }
+  }, [processedVoiceList, characterInfo]);
 
   useEffect(() => {
     if (open) {
       init();
+    } else {
+      setInputImgUrl(null);
+      setPositivePrompt("");
+      setNegativePrompt("");
+      setChosenModel(null);
+      setVoice(null);
+      setServiceStatus("idle");
+      setSessionId(null);
+      imgFileRef.current = null;
+      if (imgInputRef.current) imgInputRef.current.value = "";
     }
-  }, [init, open]);
+  }, [open, init, setServiceStatus, setSessionId]);
 
   return (
     <Modal
       open={open}
       onCancel={onClose}
+      centered
+      title={null}
+      maskClosable={false}
       footer={
         <div className="w-full flex items-center justify-between">
           <DropdownMenu<LipSyncModelInfo>
             list={lipSyncModels}
             value={chosenModel}
-            onChange={handleModelChange}
+            onChange={setChosenModel}
             formatLabel={formatModelName}
             getKey={(_, index) => index}
-            isSelected={(item, value) =>
-              value?.motion_style === item.motion_style
-            }
-            defaultLabel={defaultModelName}
+            isSelected={(item, val) => val?.motion_style === item.motion_style}
+            defaultLabel={DEFAULT_MODEL_NAME}
             iconActive={<IconModelBlack className="w-4 h-4" />}
             iconInactive={<IconModelGray className="w-4 h-4" />}
             iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
@@ -384,18 +255,15 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                 <div className="w-4 h-4 ml-3" />
               )
             }
+            disabled={lipSyncModels.length === 0}
           />
           <button
             className="h-8 px-[14px] flex items-center bg-[#F6F3F3] rounded-full cursor-pointer"
-            onClick={() => {
-              if (isServiceRunning()) {
-                endService();
-              } else {
-                createCharacter();
-              }
-            }}
+            onClick={() =>
+              isServiceRunning() ? stopLiveService() : createCharacter()
+            }
           >
-            <span className=" text-sm font-normal text-[#3B3D2C]">
+            <span className="text-sm font-normal text-[#3B3D2C]">
               {isServiceRunning()
                 ? t("home.end_conversation")
                 : t("home.start_conversation")}
@@ -404,22 +272,16 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           </button>
         </div>
       }
-      centered
-      title={null}
-      maskClosable={false}
       classNames={{
         container: "w-[32.25rem] h-[40rem] !rounded-2xl",
         body: "!pt-4 max-h-[35rem] overflow-y-auto",
       }}
     >
       <div className="w-full flex flex-col gap-3">
+        {/* Image Upload Section */}
         <div
           className="w-full h-[18rem] flex items-center justify-center border border-black/30 rounded-2xl relative"
-          onClick={() => {
-            if (imgInputRef.current && !inputImgUrl) {
-              imgInputRef.current.click();
-            }
-          }}
+          onClick={() => !inputImgUrl && imgInputRef.current?.click()}
         >
           {inputImgUrl ? (
             <div className="relative w-full h-full flex items-center justify-center">
@@ -441,11 +303,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                 checkOrientation={false} // https://github.com/fengyuanchen/cropperjs/issues/671
                 autoCropArea={1}
                 aspectRatio={640 / 480}
-                style={{
-                  width: "24rem",
-                  height: "18rem",
-                  background: "#333333",
-                }}
+                style={{ width: "24rem", height: "18rem", background: "#333" }}
               />
             </div>
           ) : (
@@ -456,7 +314,6 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               </span>
             </div>
           )}
-          {/* 移除按钮 */}
           {inputImgUrl && (
             <button
               className="absolute bottom-2 right-2"
@@ -470,7 +327,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           )}
         </div>
 
-        {/* 正向 Prompt */}
+        {/* Positive Prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
           <label className="text-sm text-[#666] mb-1">
             {t("home.positive_prompt")}
@@ -479,41 +336,31 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
             rows={4}
-            style={{
-              width: "100%",
-              resize: "none",
-              lineHeight: "24px",
-              height: "96px",
-              padding: "8px",
-              boxSizing: "border-box",
-              overflow: "auto",
-              outline: "none",
-            }}
+            className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
             placeholder={t("home.positive_prompt_placeholder")}
           />
           <div className="flex flex-wrap gap-2 mt-2">
-            {positiveTags.map((tag) => {
-              const active = positivePrompt.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    active
-                      ? "bg-primary text-white"
-                      : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
-                  }`}
-                  onClick={() =>
-                    insertTag(positivePrompt, setPositivePrompt, tag)
-                  }
-                >
-                  <span>{tag}</span>
-                </button>
-              );
-            })}
+            {POSITIVE_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={cn(
+                  "px-2 py-1 text-xs rounded-full",
+                  positivePrompt.includes(tag)
+                    ? "bg-primary text-white"
+                    : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
+                )}
+                onClick={() =>
+                  insertTag(positivePrompt, setPositivePrompt, tag)
+                }
+              >
+                {tag}
+              </button>
+            ))}
           </div>
         </div>
-        {/* 负面 Prompt */}
+
+        {/* Negative Prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
           <label className="text-sm text-[#666] mb-1">
             {t("home.negative_prompt")}
@@ -522,38 +369,27 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
             rows={4}
-            style={{
-              width: "100%",
-              resize: "none",
-              lineHeight: "24px",
-              height: "96px",
-              padding: "8px",
-              boxSizing: "border-box",
-              overflow: "auto",
-              outline: "none",
-            }}
+            className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
             placeholder={t("home.negative_prompt_placeholder")}
           />
           <div className="flex flex-wrap gap-2 mt-2">
-            {negativeTags.map((tag) => {
-              const active = negativePrompt.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    active
-                      ? "bg-primary text-white"
-                      : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
-                  }`}
-                  onClick={() =>
-                    insertTag(negativePrompt, setNegativePrompt, tag)
-                  }
-                >
-                  <span>{tag}</span>
-                </button>
-              );
-            })}
+            {NEGATIVE_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={cn(
+                  "px-2 py-1 text-xs rounded-full",
+                  negativePrompt.includes(tag)
+                    ? "bg-primary text-white"
+                    : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
+                )}
+                onClick={() =>
+                  insertTag(negativePrompt, setNegativePrompt, tag)
+                }
+              >
+                {tag}
+              </button>
+            ))}
           </div>
           <style>{`
               textarea {
@@ -568,7 +404,8 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               }
           `}</style>
         </div>
-        {/* 语音框：选择语音 */}
+
+        {/* Voice Selection */}
         <div className="w-full h-[54px] flex items-center justify-between border border-black/30 rounded-2xl p-1 bg-[#f4f4f4]">
           <div className="flex-1">
             <div className="w-full h-full flex items-center justify-between relative ml-2 group">
@@ -585,45 +422,28 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               </button>
               <Input
                 placeholder={t("home.please_select_voice")}
-                className="w-[calc(100%-20px)]  h-9 pl-[45px] bg-[#fff] rounded-2xl p-2 border-none outline-none"
+                className="w-[calc(100%-20px)] h-9 pl-[45px] bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer"
                 value={
-                  voice
-                    ? `${voice.friendly_name}`
-                    : t("home.please_select_voice")
+                  voice ? voice.friendly_name : t("home.please_select_voice")
                 }
                 readOnly
                 onClick={() => setVoiceModalOpen(true)}
               />
             </div>
           </div>
-          {/* <CommonButton
-            size="large"
-            className="w-10 h-10 p-0"
-            borderRadiusPx={54}
-            onClick={() => {
-              setIsPlaying(!isPlaying);
-            }}
-          >
-            <span className="text-xl font-medium text-[#333] flex items-center  justify-center">
-              {isPlaying ? (
-                <IconPause className="w-5 h-5" />
-              ) : (
-                <IconPlay className="w-5 h-5" />
-              )}
-            </span>
-          </CommonButton> */}
         </div>
-        {/* 服务状态条 */}
+
+        {/* Service Status */}
         <div className="w-full h-[54px] flex items-center justify-between border border-black/30 rounded-2xl p-1 bg-[#f4f4f4]">
           <div
             className="w-10 h-10 rounded-full m-1"
             style={{
               backgroundColor:
                 serviceStatus === "running"
-                  ? "#22c55e" // green
+                  ? "#22c55e"
                   : serviceStatus === "stopped"
-                    ? "#ef4444" // red
-                    : "#d1d5db", // gray
+                    ? "#ef4444"
+                    : "#d1d5db",
             }}
           />
           <div className="flex-1 px-3 text-[#3B3D2C]">
@@ -637,9 +457,9 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             size="large"
             className="w-10 h-10 p-0"
             borderRadiusPx={54}
-            onClick={getServiceStatusFunc}
+            onClick={updateServiceStatus}
           >
-            <span className="text-xl font-medium text-[#333] flex items-center  justify-center">
+            <span className="text-xl font-medium text-[#333] flex items-center justify-center">
               <IconRefresh className="w-5 h-5" />
             </span>
           </CommonButton>

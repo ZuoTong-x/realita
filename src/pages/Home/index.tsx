@@ -70,7 +70,10 @@ const HomePage = () => {
           size="large"
           className="py-4 h-16 px-0"
           borderRadiusPx={54}
-          onClick={() => setCreateOpen(true)}
+          onClick={() => {
+            setCreateCharacterInfo(null);
+            setCreateOpen(true);
+          }}
         >
           <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
             {t("home.create_new_character")}
