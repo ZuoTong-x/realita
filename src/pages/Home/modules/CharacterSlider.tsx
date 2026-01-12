@@ -1,7 +1,7 @@
 import type { CharacterInfo } from "@/types/Character";
 import { Skeleton, Popover } from "antd";
 import { cn } from "@/utils/style_utils";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 
 type CharacterSliderProps = {
   characterList: CharacterInfo[];
@@ -14,26 +14,34 @@ const CharacterSlider = ({
   currentCharacter,
   changeCharacter,
 }: CharacterSliderProps) => {
-  const getCharacterOrder = (character: CharacterInfo): number => {
-    if (!currentCharacter || characterList.length === 0) return 0;
+  const DISPLAY_COUNT = 13; // 最大展示数量
+
+  const { visibleList, currentOrderIdx } = useMemo(() => {
+    if (!currentCharacter || characterList.length === 0) {
+      return { visibleList: [], currentOrderIdx: 0 };
+    }
+
     const len = characterList.length;
-    const currentIdx = characterList.findIndex(
+    const centerIdx = characterList.findIndex(
       (c) => c.character_id === currentCharacter.character_id
     );
-    const charIdx = characterList.findIndex(
-      (c) => c.character_id === character.character_id
-    );
-    if (currentIdx === -1 || charIdx === -1) return 0;
 
-    const center = Math.floor(len / 2);
+    if (centerIdx === -1) return { visibleList: [], currentOrderIdx: 0 };
 
-    let offset = charIdx - currentIdx;
-    // Normalize to shortest path around circle
-    if (offset > len / 2) offset -= len;
-    if (offset < -len / 2) offset += len;
+    const count = Math.min(len, DISPLAY_COUNT);
+    const half = Math.floor(count / 2);
+    const res: { item: CharacterInfo; order: number }[] = [];
 
-    return center + offset;
-  };
+    for (let i = -half; i <= half; i++) {
+      const idx = (centerIdx + i + len) % len;
+      res.push({
+        item: characterList[idx],
+        order: i + half, // 这里的 order 是相对于 visibleList 的
+      });
+    }
+
+    return { visibleList: res, currentOrderIdx: half };
+  }, [characterList, currentCharacter]);
 
   const timerRef = useRef<number | null>(null);
   const stepToIndex = (targetIdx: number) => {
@@ -64,16 +72,12 @@ const CharacterSlider = ({
     run();
   };
 
-  const nineCount = () => 13;
-
   return (
     <div className="w-full h-full rounded-md bg-white/10 p-2 shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] overflow-hidden">
-      {characterList.length > 0 && currentCharacter ? (
+      {visibleList.length > 0 && currentCharacter ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          {characterList.map((character) => {
-            const order = getCharacterOrder(character);
-            const center = Math.floor(characterList.length / 2);
-            const isCenter = order === center;
+          {visibleList.map(({ item: character, order }) => {
+            const isCenter = order === currentOrderIdx;
             return (
               <Popover
                 key={character.character_id}
@@ -124,8 +128,8 @@ const CharacterSlider = ({
       ) : (
         <div className="w-full h-full flex items-center justify-center p-2">
           <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-            {Array.from({ length: nineCount() }).map((_, idx) => {
-              const center = Math.floor(nineCount() / 2);
+            {Array.from({ length: DISPLAY_COUNT }).map((_, idx) => {
+              const center = Math.floor(DISPLAY_COUNT / 2);
               const isCenter = idx === center;
               return (
                 <div

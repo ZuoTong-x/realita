@@ -1,7 +1,7 @@
 import request from "./request";
 import type { ApiResponse } from "@/types";
 import type { CharacterInfo, CharacterSettings } from "@/types";
-import type { Voice, Model } from "@/types/Character";
+import type { Voice, Model, SampleAsset } from "@/types/Character";
 
 // 主页获取角色列表 /get_user_characters
 export const getCharacterList = async (): Promise<
@@ -99,6 +99,16 @@ export const removeVoiceFromUserFavorite = async (
   const response = await request.delete<ApiResponse<null>>(
     "/remove_voice_from_user_favorite",
     { data: { voice_id: voiceId } }
+  );
+  return response.data;
+};
+
+// 获取音色试听音频 /voice_sample_asset
+export const getVoiceSampleAsset = async (
+  voiceId: string
+): Promise<ApiResponse<SampleAsset>> => {
+  const response = await request.get<ApiResponse<SampleAsset>>(
+    `/voice_sample_asset?voice_id=${voiceId}`
   );
   return response.data;
 };

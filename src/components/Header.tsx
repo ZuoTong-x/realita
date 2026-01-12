@@ -11,11 +11,12 @@ import IconCredit from "@/assets/svg/IconCredit.svg?react";
 import CommonButton from "./Common/Button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/style_utils";
-import { App } from "antd";
+import { App, Popover } from "antd";
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
 // import { fetchUserInfoDetail } from "@/api/userRequest";
 import { getUserCredits } from "@/api/login";
+import UserInfoModal from "./UserInfoModal";
 
 const Header = () => {
   const { message } = App.useApp();
@@ -134,19 +135,32 @@ const Header = () => {
         )}
         {/* 头像或登录按钮 */}
         {isLogged ? (
-          <div className=" cursor-pointer">
-            {userInfo?.avatar_url ? (
-              <img
-                className="w-7 h-7 rounded-full object-cover"
-                src={userInfo?.avatar_url}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                alt=""
-              />
-            ) : (
-              <IconAvatar className="w-7 h-7" />
-            )}
-          </div>
+          <Popover
+            content={<UserInfoModal />}
+            trigger="hover"
+            placement="bottomRight"
+            arrow={false}
+            overlayInnerStyle={{ padding: 0 }}
+          >
+            <div
+              className="cursor-pointer"
+              onClick={() => {
+                navigate("/user");
+              }}
+            >
+              {userInfo?.avatar_url ? (
+                <img
+                  className="w-7 h-7 rounded-full object-cover"
+                  src={userInfo?.avatar_url}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  alt=""
+                />
+              ) : (
+                <IconAvatar className="w-7 h-7" />
+              )}
+            </div>
+          </Popover>
         ) : (
           <CommonButton
             onClick={() => {

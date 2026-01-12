@@ -19,6 +19,8 @@ import IconStar from "@/assets/svg/IconStar.svg?react";
 import IconRefresh from "@/assets/svg/IconRefresh.svg?react";
 import IconAdd from "@/assets/svg/IconAdd.svg?react";
 import IconWave from "@/assets/svg/IconWave.svg?react";
+import IconPause from "@/assets/svg/IconPause.svg?react";
+import IconPlay from "@/assets/svg/IconPlay.svg?react";
 
 import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
 import { useLiveService } from "@/hooks/useLiveService";
@@ -36,9 +38,11 @@ import type {
   ProcessedVoice,
   CharacterInfo,
   LipSyncModelInfo,
+  SampleAsset,
 } from "@/types/Character";
 import { LipSyncMotionStyle } from "@/types/Character";
 import { fileToDataURL } from "@/utils/file_util";
+import { getVoiceSampleAsset } from "@/api/characterRequest";
 
 type CharacterCreateProps = {
   open: boolean;
@@ -70,6 +74,12 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   const [voice, setVoice] = useState<ProcessedVoice | null>(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [voiceList, setVoiceList] = useState<Voice[]>([]);
+
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const currentAudioUrlRef = useRef<string>("");
+  const [audioStatus, setAudioStatus] = useState<
+    "playing" | "loading" | "idle"
+  >("idle");
 
   // --- Custom Hooks ---
   const {
@@ -200,7 +210,58 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     }
     await fetchOptions();
   }, [characterInfo, fetchOptions]);
+  const handleAudioPlay = async (ev: React.MouseEvent) => {
+    ev.stopPropagation();
 
+    // 再次点击当前播放的声音 => 暂停
+    if (audioStatus === "playing") {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setAudioStatus("idle");
+      return;
+    }
+
+    // 切换声音时先暂停上一个
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    setAudioStatus("loading");
+
+    try {
+      const res = await getVoiceSampleAsset(voice?.id || "");
+      if (res.code === 200 && res.data?.url) {
+        const audioUrl = res.data.url;
+
+        // 更新当前音频 URL 引用
+        currentAudioUrlRef.current = audioUrl;
+
+        // 直接对 audio 元素设置 src，并在加载后播放
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          audioRef.current.load();
+
+          try {
+            await audioRef.current.play();
+            setAudioStatus("playing");
+          } catch (err) {
+            console.error("audio play error", err);
+            message.error("无法自动播放音频，请检查浏览器权限。");
+            setAudioStatus("idle");
+          }
+        }
+      } else {
+        throw new Error(res.msg || "获取音频失败");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
+      );
+      setAudioStatus("idle");
+    }
+  };
   // --- Effects ---
   useEffect(() => {
     if (characterInfo && processedVoiceList.length > 0) {
@@ -247,7 +308,6 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             iconActive={<IconModelBlack className="w-4 h-4" />}
             iconInactive={<IconModelGray className="w-4 h-4" />}
             iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
-            showNewTag={(item) => item.motion_style === "dynamic"}
             renderSelectedIcon={(_, isSelected) =>
               isSelected ? (
                 <IconChosenBlack className="w-4 h-4 ml-3" />
@@ -422,13 +482,39 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               </button>
               <Input
                 placeholder={t("home.please_select_voice")}
-                className="w-[calc(100%-20px)] h-9 pl-[45px] bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer"
+                className="w-[calc(100%-20px)] h-9 px-[45px]  bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer"
                 value={
                   voice ? voice.friendly_name : t("home.please_select_voice")
                 }
                 readOnly
                 onClick={() => setVoiceModalOpen(true)}
               />
+
+              {voice ? (
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300 absolute right-2 shadow-md",
+                    "bg-[#fff] cursor-pointer group ",
+                    audioStatus === "loading" && "animate-pulse"
+                  )}
+                  onClick={(e) => {
+                    handleAudioPlay(e);
+                  }}
+                >
+                  {audioStatus === "loading" ? (
+                    <div className="w-6 h-6 border-2 border-[#000] border-t-transparent rounded-full animate-spin" />
+                  ) : audioStatus === "playing" ? (
+                    <IconPause className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-[#000]" />
+                  ) : (
+                    <IconPlay
+                      className={cn(
+                        "w-6 h-6 transition-transform duration-300 text-[#000]",
+                        currentAudioUrlRef.current && "group-hover:scale-110"
+                      )}
+                    />
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -473,6 +559,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         className="hidden"
         onChange={handleImgFileChange}
       />
+      <audio ref={audioRef} onEnded={() => setAudioStatus("idle")} />
       <VoiceModal
         open={voiceModalOpen}
         onClose={() => setVoiceModalOpen(false)}

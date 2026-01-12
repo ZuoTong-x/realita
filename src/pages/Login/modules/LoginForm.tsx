@@ -10,8 +10,10 @@ import { App } from "antd";
 import { saveRefreshToken, saveToken } from "@/utils/user_util";
 
 import useCountdown from "@/hooks/useCountdown";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { message } = App.useApp();
   const { loginStore, setCreditStore } = useUserStore();
@@ -75,6 +77,7 @@ const LoginForm = () => {
 
     console.log("Google 登录成功:");
     message.success(t("login.login_success"));
+    navigate("/");
   };
 
   const handleGLClick = () => {

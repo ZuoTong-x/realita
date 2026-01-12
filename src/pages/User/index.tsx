@@ -14,6 +14,9 @@ import type { Character } from "@/types/Character";
 
 import IconLikeFilled from "@/assets/svg/IconLikeFilled.svg?react";
 
+import { useNavigate } from "react-router-dom";
+import useUserStore from "@/stores/userStore";
+
 // Like Tag Component with animation
 const LikeTag = ({
   likeCount,
@@ -61,12 +64,9 @@ const UserPage = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [createCharacterInfo, setCreateCharacterInfo] =
     useState<Character | null>(null);
+  const navigate = useNavigate();
+  const { userInfo, logoutStore } = useUserStore();
 
-  const userInfo = {
-    name: "张三",
-    email: "zhangsan@example.com",
-    avatar: testPng,
-  };
   const tabsList = [
     { label: t("user.history"), value: "history", icon: <IconHistory /> },
     { label: t("user.likes"), value: "likes", icon: <IconLike /> },
@@ -213,20 +213,25 @@ const UserPage = () => {
     setCreateOpen(true);
   };
 
+  const handleLogOut = () => {
+    logoutStore();
+    navigate("/login");
+  };
+
   return (
     <div className="w-full h-full min-w-[800px] max-w-[1280px] mx-auto flex flex-col justify-start items-center default-bg-container relative px-10 pt-24 pb-4 gap-6">
       <div className="w-full flex">
         <div>
-          <Avatar src={userInfo.avatar} size={58} />
+          <Avatar src={userInfo?.avatar_url} size={58} />
         </div>
         <div className="flex-1 ml-4 flex flex-col justify-between items-start py-1">
           <div className="text-lg font-medium text-[#32333D]">
-            {userInfo.name}
+            {userInfo?.nickname}
           </div>
-          <div className="text-sm text-[#B1B6BD]">{userInfo.email}</div>
+          <div className="text-sm text-[#B1B6BD]">{userInfo?.email}</div>
         </div>
         <div className="py-1 flex-col justify-between items-end">
-          <CommonButton size="large" className=" h-10 " onClick={() => {}}>
+          <CommonButton size="large" className=" h-10 " onClick={handleLogOut}>
             <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
               <IconLogout className="w-5 h-5" />
               {t("login.login_out")}
@@ -246,18 +251,12 @@ const UserPage = () => {
         />
       </div>
       <div className="w-full flex-1 overflow-y-auto custom-scrollbar min-h-0 pr-2">
-        {/* {activeValue === "history" && <div>历史记录</div>}
-        {activeValue === "likes" && <div>我的喜欢</div>}
-        {activeValue === "assets" && <div>我的收藏</div>} */}
         <List
           grid={{ gutter: 16, column: 4 }}
           dataSource={cardList}
           renderItem={(item) => (
             <List.Item>
-              <Card
-                className="w-full h-full cursor-pointer user-card-item transition-all duration-300"
-                bodyStyle={{ padding: "8px" }}
-              >
+              <Card className="w-full h-full cursor-pointer user-card-item transition-all duration-300">
                 <div className="w-full flex flex-col gap-2 relative group">
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden">
                     <img

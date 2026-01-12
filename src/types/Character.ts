@@ -114,10 +114,6 @@ export interface Voice {
    * 音色的标注标签，列表长度可能为0.
    */
   labels: string[];
-  /**
-   * 音色的试听音频资产，如果试听音频不存在，则返回null.
-   */
-  sample_asset: SampleAsset;
 }
 
 /**

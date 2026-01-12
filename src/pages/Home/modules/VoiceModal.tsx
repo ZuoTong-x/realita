@@ -17,6 +17,7 @@ import {
   getUserFavoriteVoices,
   addVoiceToUserFavorite,
   removeVoiceFromUserFavorite,
+  getVoiceSampleAsset,
 } from "@/api/characterRequest";
 
 interface LanguageOption {
@@ -55,8 +56,9 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>("全部");
   const [activeTab, setActiveTab] = useState<string>("public");
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [currentAudioUrl, setCurrentAudioUrl] = useState<string>("");
+  const currentAudioUrlRef = useRef<string>("");
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const [favoriteVoiceIds, setFavoriteVoiceIds] = useState<string[]>([]);
 
@@ -100,27 +102,61 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       return matchLang && matchGender && matchCategory;
     });
   }, [currentBaseList, langFilter, genderFilter, categoryFilter]);
-
-  const handleAudioPlay = (ev: React.MouseEvent, v: ProcessedVoice) => {
+  const handleAudioPlay = async (ev: React.MouseEvent, v: ProcessedVoice) => {
     ev.stopPropagation();
 
+    // 再次点击当前播放的声音 => 暂停
     if (playingId === v.id) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-    } else {
-      if (v.sample_asset?.url) {
-        setCurrentAudioUrl(v.sample_asset.url);
-        setPlayingId(v.id);
-        if (audioRef.current) {
-          audioRef.current.load();
-          audioRef.current.play().catch(() => {
-            setPlayingId(null);
-          });
-        }
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
+      setPlayingId(null);
+      return;
+    }
+
+    // 切换声音时先暂停上一个
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    setLoadingId(v.id);
+    setPlayingId(null); // 开始加载新音频时，确保 UI 播放状态先置空
+
+    try {
+      const res = await getVoiceSampleAsset(v.id);
+      if (res.code === 200 && res.data?.url) {
+        const audioUrl = res.data.url;
+
+        // 更新当前音频 URL 引用
+        currentAudioUrlRef.current = audioUrl;
+
+        // 直接对 audio 元素设置 src，并在加载后播放
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          audioRef.current.load();
+
+          try {
+            await audioRef.current.play();
+            setPlayingId(v.id);
+          } catch (err) {
+            console.error("audio play error", err);
+            message.error("无法自动播放音频，请检查浏览器权限。");
+            setPlayingId(null);
+          }
+        }
+      } else {
+        throw new Error(res.msg || "获取音频失败");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
+      );
+      setPlayingId(null);
+    } finally {
+      setLoadingId(null);
     }
   };
-
   const handleAudioEnded = () => {
     setPlayingId(null);
   };
@@ -277,25 +313,22 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                   <div
                     className={cn(
                       "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
-                      v.sample_asset?.url
-                        ? "bg-[#000] cursor-pointer group hover:bg-[#333]"
-                        : "bg-[#ccc] cursor-not-allowed"
+                      "bg-[#000] cursor-pointer group hover:bg-[#333]",
+                      loadingId === v.id && "animate-pulse"
                     )}
                     onClick={(e) => {
-                      if (v.sample_asset?.url) {
-                        handleAudioPlay(e, v);
-                      } else {
-                        e.stopPropagation();
-                      }
+                      handleAudioPlay(e, v);
                     }}
                   >
-                    {playingId === v.id ? (
+                    {loadingId === v.id ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : playingId === v.id ? (
                       <IconPause className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-[#fff]" />
                     ) : (
                       <IconPlay
                         className={cn(
                           "w-6 h-6 transition-transform duration-300 text-[#fff]",
-                          v.sample_asset?.url && "group-hover:scale-110"
+                          currentAudioUrlRef.current && "group-hover:scale-110"
                         )}
                       />
                     )}
@@ -338,7 +371,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           />
         )}
       </div>
-      <audio ref={audioRef} src={currentAudioUrl} onEnded={handleAudioEnded} />
+      <audio ref={audioRef} onEnded={handleAudioEnded} />
       <style>{`
         @keyframes heartbeat {
           0% { transform: scale(1); }
