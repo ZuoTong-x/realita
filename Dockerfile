@@ -26,6 +26,9 @@ FROM nginx:alpine AS runner
 # 复制构建产物到 nginx 静态文件目录
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+COPY start.sh ./docker-entrypoint.d/50-generate-env.sh
+RUN chmod +x docker-entrypoint.d/50-generate-env.sh
+
 ENV http_proxy=
 ENV https_proxy=
 ENV HTTP_PROXY=

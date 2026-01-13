@@ -8,10 +8,11 @@ import type {
 import { getToken } from "../utils/user_util";
 import useUserStore from "../stores/userStore";
 import { navigation } from "@/utils/navigation";
+import { getRuntimeEnv } from "@/config/runtimeEnv";
 
 // 创建 Axios 实例
 const request: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE, // 根据环境变量自动切换
+  baseURL: getRuntimeEnv().VITE_API_BASE, // runtime env first, fallback to build-time
   timeout: 10000, // 10 秒超时
 });
 
