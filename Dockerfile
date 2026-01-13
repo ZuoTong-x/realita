@@ -19,7 +19,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run build-prod
+RUN pnpm run build-docker
 
 FROM nginx:alpine AS runner
 
