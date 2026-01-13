@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 
 import CommonButton from "@/components/Common/Button";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
-import IconAudioOn from "@/assets/svg/IconAudioOn.svg?react";
+import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
 import IconCalling from "@/assets/svg/IconCalling.svg?react";

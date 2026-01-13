@@ -1,0 +1,20 @@
+image: registry.sensetime.com/zoetrope/library/docker:19.03.15
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - build
+
+build:docker_web:
+  interruptible: true
+  stage: build
+  script:
+    - docker login registry.sensetime.com --username ${CI_REGISTRY_USERNAME} --password ${CI_REGISTRY_PASSWD}
+    - echo "Starting image build..."
+    - DOCKER_BUILDKIT=1 docker build --no-cache -t local:temp -f ./Dockerfile .
+    - docker tag local:temp registry.sensetime.com/zoetrope/realita:${CI_COMMIT_TAG}
+    - echo "Pushing image to registry.sensetime.com/zoetrope/realita:${CI_COMMIT_TAG}"
+    - docker push registry.sensetime.com/zoetrope/realita:${CI_COMMIT_TAG}
+  only:
+    - tags

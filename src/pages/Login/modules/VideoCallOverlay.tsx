@@ -6,7 +6,7 @@ import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
-import IconAudioOn from "@/assets/svg/IconAudioOn.svg?react";
+import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import { useTranslation } from "react-i18next";
 
 const VIDEO_WIDTH = 400;
