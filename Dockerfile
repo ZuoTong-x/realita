@@ -6,7 +6,7 @@ ENV HTTP_PROXY=http://10.161.32.26:30200
 ENV HTTPS_PROXY=http://10.161.32.26:30200
 
 RUN corepack enable
-RUN corepack prepare pnpm@latest --activate
+RUN corepack prepare pnpm@10.15.1 --activate
 
 FROM base AS builder
 WORKDIR /app
