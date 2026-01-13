@@ -12,8 +12,6 @@ import IconChat from "@/assets/svg/IconChat.svg?react";
 import useCharacterListStore from "@/stores/characterListStore";
 
 type CharacterSwiperProps = {
-  // registerPause?: (pauseFn: () => void) => void;
-  // registerPlay?: (playFn: () => void) => void;
   onChat: (character: CharacterInfo) => void;
 };
 

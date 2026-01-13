@@ -12,25 +12,13 @@ import IconPlay from "@/assets/svg/IconPlay.svg?react";
 import IconPause from "@/assets/svg/IconPause.svg?react";
 import IconUnFavorite from "@/assets/svg/IconUnFavorite.svg?react";
 import IconFavorite from "@/assets/svg/IconFavorite.svg?react";
-import type { ProcessedVoice } from "@/types/Character";
+import type { ProcessedVoice, Option } from "@/types/Character";
 import {
   getUserFavoriteVoices,
   addVoiceToUserFavorite,
   removeVoiceFromUserFavorite,
   getVoiceSampleAsset,
 } from "@/api/characterRequest";
-
-interface LanguageOption {
-  key: string;
-  label_zh: string;
-  label_en: string;
-}
-
-interface GenderOption {
-  key: string;
-  label_zh: string;
-  label_en: string;
-}
 
 type VoiceModalProps = {
   open: boolean;
@@ -70,7 +58,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   }, [voiceList, activeTab, favoriteVoiceIds]);
 
   const languages = useMemo(() => {
-    const map = new Map<string, LanguageOption>();
+    const map = new Map<string, Option>();
     currentBaseList.forEach((v) => {
       if (v.language) {
         map.set(v.language.key, v.language);
@@ -82,7 +70,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   }, [currentBaseList]);
 
   const genders = useMemo(() => {
-    const map = new Map<string, GenderOption>();
+    const map = new Map<string, Option>();
     currentBaseList.forEach((v) => {
       if (v.gender) {
         map.set(v.gender.key, v.gender);
@@ -207,7 +195,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         />
       </div>
       <div className="flex gap-2 justify-end items-center flex-1">
-        <DropdownMenu<LanguageOption>
+        <DropdownMenu<Option>
           list={languages}
           value={languages.find((l) => l.key === langFilter) || languages[0]}
           onChange={(item) => {
@@ -225,7 +213,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
         />
 
-        <DropdownMenu<GenderOption>
+        <DropdownMenu<Option>
           list={genders}
           value={genders.find((g) => g.key === genderFilter) || genders[0]}
           onChange={(item) => {
@@ -334,7 +322,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                     )}
                   </div>
                   <div className="flex-1 flex flex-col justify-center items-center ">
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-[180px] text-center">
                       {v.friendly_name}
                     </span>
                     <span className="text-xs text-[#666]">

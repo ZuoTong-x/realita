@@ -39,23 +39,21 @@ const NavigateSetter = () => {
 };
 
 const renderRoutes = (routes: AppRoute[]) => {
-  return routes.map((route) => (
-    <Route
-      key={route.path}
-      path={route.path}
-      element={
-        route.requiresAuth ? (
-          <ProtectedRoute>
-            <route.element />
-          </ProtectedRoute>
-        ) : (
-          <route.element />
-        )
-      }
-    >
-      {route.children && renderRoutes(route.children)}
-    </Route>
-  ));
+  return routes.map((route) => {
+    const element = route.requiresAuth ? (
+      <ProtectedRoute>
+        <route.element />
+      </ProtectedRoute>
+    ) : (
+      <route.element />
+    );
+
+    return (
+      <Route key={route.path} path={route.path} element={element}>
+        {route.children && renderRoutes(route.children)}
+      </Route>
+    );
+  });
 };
 
 const App = () => {

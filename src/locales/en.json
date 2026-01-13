@@ -59,10 +59,10 @@
     "service_running": "Service is running",
     "service_stopped": "Service is stopped",
     "service_not_started": "Service is not started",
-    "positive_prompt": "Positive Prompt",
-    "negative_prompt": "Negative Prompt",
-    "positive_prompt_placeholder": "Please enter positive prompt...",
-    "negative_prompt_placeholder": "Please enter negative/exclusion prompt...",
+    "llm_prompt": "LLM Prompt",
+    "video_prompt": "Video Prompt",
+    "llm_prompt_placeholder": "Please enter LLM prompt...",
+    "video_prompt_placeholder": "Please enter video prompt...",
     "select_voice": "Select Voice"
   },
   "character": {

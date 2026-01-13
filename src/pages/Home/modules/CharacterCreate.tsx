@@ -25,12 +25,7 @@ import IconPlay from "@/assets/svg/IconPlay.svg?react";
 import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
 import { useLiveService } from "@/hooks/useLiveService";
 import { useVoiceProcessing } from "@/hooks/useVoiceProcessing";
-import {
-  POSITIVE_TAGS,
-  NEGATIVE_TAGS,
-  DEFAULT_POSITIVE_PROMPT,
-  DEFAULT_NEGATIVE_PROMPT,
-} from "@/constants";
+import { DEFAULT_VIDEO_PROMPT } from "@/constants";
 
 import type { StartServicePayload } from "@/types/Live";
 import type {
@@ -92,17 +87,6 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   } = useLiveService();
 
   const { processedVoiceList, typeList } = useVoiceProcessing(voiceList);
-
-  // --- Functions ---
-  const insertTag = (
-    value: string,
-    setter: (v: string) => void,
-    tag: string
-  ) => {
-    if (!value.includes(tag)) {
-      setter(value ? value + " " + tag : tag);
-    }
-  };
 
   const formatModelName = (model: LipSyncModelInfo): string => {
     return i18n.language === "zh" ? model.label_zh : model.label_en;
@@ -187,13 +171,17 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   }, []);
 
   const init = useCallback(async () => {
-    setPositivePrompt(characterInfo?.llm_prompt || DEFAULT_POSITIVE_PROMPT);
-    setNegativePrompt(characterInfo?.video_prompt || DEFAULT_NEGATIVE_PROMPT);
+    setPositivePrompt(characterInfo?.llm_prompt || "");
+    setNegativePrompt(characterInfo?.video_prompt || DEFAULT_VIDEO_PROMPT);
 
     if (characterInfo) {
       const ossDomain = "http://aoss.cn-sh-01b.sensecoreapi-oss.cn";
-      const proxyUrl = characterInfo.image.url.replace(ossDomain, "/oss-proxy");
-      fetch(proxyUrl)
+      // 只有开发环境需要代理
+      let proxyUrl = "";
+      if (import.meta.env.DEV) {
+        proxyUrl = characterInfo.image.url.replace(ossDomain, "/oss-proxy");
+      }
+      fetch(proxyUrl || characterInfo.image.url)
         .then((res) => (res.ok ? res.blob() : Promise.reject()))
         .then((blob) => {
           const mime = characterInfo.image.mime || "image/png";
@@ -386,70 +374,33 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           )}
         </div>
 
-        {/* Positive Prompt */}
+        {/*  llm_prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
           <label className="text-sm text-[#666] mb-1">
-            {t("home.positive_prompt")}
+            {t("home.llm_prompt")}
           </label>
           <textarea
             value={positivePrompt}
             onChange={(e) => setPositivePrompt(e.target.value)}
             rows={4}
             className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
-            placeholder={t("home.positive_prompt_placeholder")}
+            placeholder={t("home.llm_prompt_placeholder")}
           />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {POSITIVE_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={cn(
-                  "px-2 py-1 text-xs rounded-full",
-                  positivePrompt.includes(tag)
-                    ? "bg-primary text-white"
-                    : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
-                )}
-                onClick={() =>
-                  insertTag(positivePrompt, setPositivePrompt, tag)
-                }
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Negative Prompt */}
+        {/* video_prompt */}
         <div className="w-full flex flex-col border border-black/30 rounded-2xl p-2 hover:border-primary focus-within:border-primary">
           <label className="text-sm text-[#666] mb-1">
-            {t("home.negative_prompt")}
+            {t("home.video_prompt")}
           </label>
           <textarea
             value={negativePrompt}
             onChange={(e) => setNegativePrompt(e.target.value)}
             rows={4}
             className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
-            placeholder={t("home.negative_prompt_placeholder")}
+            placeholder={t("home.video_prompt_placeholder")}
           />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {NEGATIVE_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={cn(
-                  "px-2 py-1 text-xs rounded-full",
-                  negativePrompt.includes(tag)
-                    ? "bg-primary text-white"
-                    : "bg-[#eef0f0] hover:bg-[#e5e7eb] text-[#3B3D2C]"
-                )}
-                onClick={() =>
-                  insertTag(negativePrompt, setNegativePrompt, tag)
-                }
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+
           <style>{`
               textarea {
                 position: relative;

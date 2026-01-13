@@ -156,3 +156,9 @@ export interface Model {
    */
   name_zh?: string;
 }
+
+export interface Option {
+  key: string;
+  label_zh: string;
+  label_en: string;
+}

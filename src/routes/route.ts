@@ -15,25 +15,25 @@ export interface AppRoute {
 // 主布局下的子路由
 export const mainRoutes: AppRoute[] = [
   {
-    path: "/",
+    path: "",
     element: HomePage,
     name: "home",
     requiresAuth: true,
   },
   {
-    path: "/login",
+    path: "login",
     element: LoginPage,
     name: "login",
     requiresAuth: false,
   },
   {
-    path: "/live",
+    path: "live",
     element: LivePage,
     name: "live",
     requiresAuth: true,
   },
   {
-    path: "/user",
+    path: "user",
     element: UserPage,
     name: "user",
     requiresAuth: true,
