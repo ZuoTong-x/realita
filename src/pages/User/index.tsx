@@ -6,11 +6,11 @@ import RadioTabs from "@/components/RadioTabs";
 import IconUser from "@/assets/svg/IconUser.svg?react";
 import IconHistory from "@/assets/svg/IconHistory.svg?react";
 import IconLike from "@/assets/svg/IconLike.svg?react";
-import IconLogout from "@/assets/svg/IconLogout.svg?react";
+import IconLogout from "@/assets/svg/IconLogOut.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import { useTranslation } from "react-i18next";
 import CharacterCreate from "@/pages/Home/modules/CharacterCreate";
-import type { Character } from "@/types/Character";
+import type { Character, CharacterInfo } from "@/types/Character";
 
 import IconLikeFilled from "@/assets/svg/IconLikeFilled.svg?react";
 
@@ -63,7 +63,7 @@ const UserPage = () => {
   const [activeValue, setActiveValue] = useState<string>("history");
   const [createOpen, setCreateOpen] = useState(false);
   const [createCharacterInfo, setCreateCharacterInfo] =
-    useState<Character | null>(null);
+    useState<CharacterInfo | null>(null);
   const navigate = useNavigate();
   const { userInfo, logoutStore } = useUserStore();
 
@@ -208,8 +208,10 @@ const UserPage = () => {
     },
   ];
 
-  const handleChat = (character: Character) => {
-    setCreateCharacterInfo(character);
+  const handleChat = (_character: Character) => {
+    // Character 类型与 CharacterInfo 不兼容，暂时传 null
+    // TODO: 需要将 Character 转换为 CharacterInfo 或使用正确的类型
+    setCreateCharacterInfo(null);
     setCreateOpen(true);
   };
 

@@ -38,7 +38,6 @@ import type {
   ProcessedVoice,
   CharacterInfo,
   LipSyncModelInfo,
-  SampleAsset,
 } from "@/types/Character";
 import { LipSyncMotionStyle } from "@/types/Character";
 import { fileToDataURL } from "@/utils/file_util";

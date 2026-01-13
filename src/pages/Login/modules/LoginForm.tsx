@@ -19,10 +19,9 @@ const LoginForm = () => {
   const { loginStore, setCreditStore } = useUserStore();
   const [formData, setFormData] = useState({ phone: "", captcha: "" });
   const [canLogin, setCanLogin] = useState(false);
-  const [logging, setLogging] = useState(false);
-  const [hasSendCaptcha, setHasSendCaptcha] = useState(false);
-  const [remainTime, disabled, startCountdown, cancelCountdown] =
-    useCountdown(10);
+  const [, setLogging] = useState(false);
+  const [hasSendCaptcha] = useState(false);
+  const [remainTime] = useCountdown(10);
 
   const loginGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -86,7 +85,7 @@ const LoginForm = () => {
     loginGoogle();
   };
 
-  const handlePhoneLogin = async (event: React.FormEvent) => {
+  const handlePhoneLogin = async () => {
     // event.preventDefault(); // 阻止默认提交刷新页面
     // if (formData.phone === "") {
     //   message.warning(t("login.login_phone_placeholder"));

@@ -6,7 +6,7 @@ import IconArrow from "@/assets/svg/IconArrow.svg?react";
 import { cn } from "@/utils/style_utils";
 import { useTranslation } from "react-i18next";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
-import IconAudioOn from "@/assets/svg/IconAudioOn.svg?react";
+import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 
 import useCharacterListStore from "@/stores/characterListStore";

@@ -1,6 +1,5 @@
 import request from "./request";
 import type {
-  UserInfo,
   TokenInfo,
   CreditInfo,
   CaptchaRespInfo,

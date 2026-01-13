@@ -38,10 +38,6 @@ const HomePage = () => {
     init();
   }, [init]);
 
-  const onPreview = () => {
-    setCreateOpen(false);
-    setPreviewOpen(true);
-  };
   const handleChat = (character: CharacterInfo) => {
     setCreateCharacterInfo(character);
     setCreateOpen(true);
