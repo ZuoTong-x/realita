@@ -29,6 +29,11 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY start.sh ./docker-entrypoint.d/50-generate-env.sh
 RUN chmod +x docker-entrypoint.d/50-generate-env.sh
 
+# Custom nginx config:
+# - disable caching for env.js to avoid stale runtime env
+# - SPA fallback for react-router
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+
 ENV http_proxy=
 ENV https_proxy=
 ENV HTTP_PROXY=
