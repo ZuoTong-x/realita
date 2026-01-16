@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
-
+import LikeTag from "@/components/LikeTag";
 import useCharacterListStore from "@/stores/characterListStore";
 
 type CharacterSwiperProps = {
@@ -19,7 +19,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const {
     characterList,
     currentCharacter,
-
+    userLikedCharacters,
     setCurrentCharacter,
   } = useCharacterListStore();
   const { t } = useTranslation();
@@ -234,7 +234,6 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     }
     run();
   };
-
   const goNext = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex(
@@ -258,7 +257,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       {visibleList.length > 0 && currentCharacter && (
         <div
           className={cn(
-            "flex-1 relative flex items-end justify-center h-full",
+            "flex-1 relative flex items-end justify-center h-full z-[21]",
             "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
           )}
         >
@@ -309,23 +308,39 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
 
                   {isCenter && (
                     <>
+                      <div className="absolute top-3 right-3 flex items-center justify-center">
+                        <LikeTag
+                          characterId={character.character_id}
+                          likeCount={character.number_of_likes || 0}
+                          isLiked={userLikedCharacters.includes(
+                            character.character_id
+                          )}
+                          options={{
+                            size: "large",
+                            iconPosition: "right",
+                            showCount: true,
+                            showIcon: true,
+                            showBorder: false,
+                          }}
+                        />
+                      </div>
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center group-hover:opacity-100 opacity-0 transition-opacity duration-300">
                         <CommonButton
                           size="large"
-                          className="h-14 px-0 hover:scale-110 transition-transform duration-300"
+                          className="h-10 px-0 hover:scale-110 transition-transform duration-300"
                           borderRadiusPx={54}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleChat(character);
                           }}
                         >
-                          <span className="text-2xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
+                          <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
                             {t("common.chat")}
-                            <IconChat className="w-6 h-6" />
+                            <IconChat className="w-6 h-4" />
                           </span>
                         </CommonButton>
                       </div>
-                      <div className="absolute bottom-3 right-4 flex items-center justify-center group-hover:opacity-100 opacity-0 transition-opacity duration-300">
+                      <div className="absolute bottom-3 right-4 flex items-center justify-center ">
                         <CommonButton
                           borderRadiusPx={42}
                           className="h-10 w-10 p-0 bg-white/60 hover:scale-110 transition-transform duration-300"

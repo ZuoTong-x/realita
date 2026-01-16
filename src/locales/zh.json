@@ -63,11 +63,9 @@
     "video_prompt": "视频描述",
     "llm_prompt_placeholder": "请输入人设描述...",
     "video_prompt_placeholder": "请输入视频描述...",
-    "select_voice": "选择语音"
-  },
-  "character": {
-    "character_creating": "角色创建中...",
-    "generated_success": "角色已成功生成！"
+    "select_voice": "选择语音",
+    "create_character_success": "角色创建成功",
+    "create_character_failed": "角色创建失败"
   },
   "live": {
     "lack_of_key_data": "缺乏关键数据，请重新开始对话",

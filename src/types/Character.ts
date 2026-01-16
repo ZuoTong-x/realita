@@ -24,17 +24,6 @@ export interface LipSyncModelInfo {
   motion_style: LipSyncMotionStyle;
 }
 
-export interface CharacterSettings {
-  id: string;
-  name: string;
-  author: string;
-  voice: string;
-  prompt: string;
-  image_url: string;
-  model: string;
-  number_of_likes: number;
-}
-
 export interface CharacterInfo {
   character_id: string;
   character_name: string;
@@ -52,7 +41,7 @@ export interface CharacterInfo {
 export interface ProcessedVoice extends Voice {
   language: { key: string; label_zh: string; label_en: string } | null;
   gender: { key: string; label_zh: string; label_en: string } | null;
-  type: { zh: string; en: string; key: string };
+  age: { key: string; label_zh: string; label_en: string } | null;
 }
 
 export interface Image {
@@ -161,4 +150,44 @@ export interface Option {
   key: string;
   label_zh: string;
   label_en: string;
+}
+
+export interface EditCharacterRequest {
+  /**
+   * 被修改的角色主键。
+   */
+  character_id: string;
+  /**
+   * 修改后的图片资产主键。如果不希望修改，则不传入该项。
+   */
+  image_id?: string;
+  /**
+   * 修改后的LLM人设提示词。如果不希望修改，则不传入该项。
+   */
+  llm_prompt?: string;
+  /**
+   * 修改后的视频模型主键。如果不希望修改，则不传入该项。
+   */
+  model_id?: string;
+  /**
+   * 修改后的角色名称。如果不希望修改，则不传入该项。
+   */
+  name?: string;
+  /**
+   * 修改后的视频模型提示词。如果不希望修改，则不传入该项。
+   */
+  video_prompt?: string;
+  /**
+   * 修改后的音色主键。如果不希望修改，则不传入该项。
+   */
+  voice_id?: string;
+}
+
+export interface CreateCharacterRequest {
+  image_id: string;
+  llm_prompt: string;
+  name: string;
+  video_model_id: string;
+  video_prompt: string;
+  voice_id: string;
 }

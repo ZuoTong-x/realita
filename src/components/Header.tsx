@@ -14,9 +14,9 @@ import { cn } from "@/utils/style_utils";
 import { App, Popover } from "antd";
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
-// import { fetchUserInfoDetail } from "@/api/userRequest";
 import { getUserCredits } from "@/api/login";
 import UserInfoModal from "./UserInfoModal";
+import { getUserInfo } from "@/api/login";
 
 const Header = () => {
   const { message } = App.useApp();
@@ -25,7 +25,8 @@ const Header = () => {
   const location = useLocation();
   const [curLng, setCurLng] = useState<string>("zh");
   const [routerName, setRouterName] = useState<string>("home");
-  const { userInfo, credits, isLoggedIn, setCreditStore } = useUserStore();
+  const { userInfo, credits, isLoggedIn, setCreditStore, setUserStore } =
+    useUserStore();
   const [isLogged, setIsLogged] = useState<boolean>(false);
 
   const handleLangClick = () => {
@@ -53,10 +54,10 @@ const Header = () => {
     }
   }, [setCreditStore, message, t]);
   // 获取用户信息
-  /*
+
   const fetchUserInfo = useCallback(async () => {
     try {
-      const ret = await fetchUserInfoDetail();
+      const ret = await getUserInfo();
       if (ret.code !== 200 || !ret.data) {
         message.error(ret.msg || t("login.fetch_user_info_failed"));
         return;
@@ -66,7 +67,7 @@ const Header = () => {
       message.error(t("common.network_error"));
     }
   }, [setUserStore, message, t]);
-  */
+
   // 复制当前页面链接
   const handleShareClick = () => {
     const url = window.location.href;
@@ -84,10 +85,10 @@ const Header = () => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      // fetchUserInfo();
+      fetchUserInfo();
       fetchCreditInfo();
     }
-  }, [isLoggedIn, fetchCreditInfo]);
+  }, [isLoggedIn, fetchCreditInfo, fetchUserInfo]);
 
   useEffect(() => {
     setIsLogged(isLoggedIn);
@@ -105,7 +106,7 @@ const Header = () => {
       >
         <IconLogoName className={cn("w-[116px] h-9")} />
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center z-[22]">
         {/** 分享 */}
         <CommonButton
           className="w-7 h-7 flex items-center mr-2"
@@ -140,7 +141,11 @@ const Header = () => {
             trigger="hover"
             placement="bottomRight"
             arrow={false}
-            overlayInnerStyle={{ padding: 0 }}
+            styles={{
+              container: {
+                padding: 0,
+              },
+            }}
           >
             <div
               className="cursor-pointer"

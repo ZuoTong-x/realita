@@ -1,25 +1,37 @@
+import { useState } from "react";
+
 import { Modal } from "antd";
-import IconDelete from "@/assets/svg/IconDelete.svg?react";
-import IconEdit from "@/assets/svg/IconEdit.svg?react";
-import IconShare from "@/assets/svg/IconShare.svg?react";
-import { CreateStatus } from "@/types/Character";
+// import IconDelete from "@/assets/svg/IconDelete.svg?react";
+// import IconEdit from "@/assets/svg/IconEdit.svg?react";
+// import IconShare from "@/assets/svg/IconShare.svg?react";
+// import { CreateStatus } from "@/types/Character";
 import { Ratio } from "@/types/Live";
-import useCharacterStore from "@/stores/characterStore";
+
 import { useTranslation } from "react-i18next";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import CommonButton from "@/components/Common/Button";
 import IconChat from "@/assets/svg/IconChat.svg?react";
+import { getCharacterInfo } from "@/api/characterRequest";
+import type { CharacterInfo } from "@/types/Character";
 
 type CharacterPreviewProps = {
   open: boolean;
   onClose: () => void;
+  characterId: string;
+
+  ratio: Ratio;
 };
 const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   open,
   onClose,
+  characterId,
+
+  ratio,
 }) => {
-  const { imageInfo, createStatus, ratio } = useCharacterStore();
   const { t } = useTranslation();
+  const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(
+    null
+  );
 
   const frameClass = useMemo(() => {
     if (ratio === Ratio.LANDSCAPE) {
@@ -41,6 +53,28 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     console.log("handleChat");
   };
 
+  const handleEdit = () => {
+    console.log("handleEdit");
+  };
+
+  const handleShare = () => {
+    console.log("handleShare");
+  };
+
+  const handleDelete = () => {
+    console.log("handleDelete");
+  };
+  const init = useCallback(async () => {
+    const res = await getCharacterInfo(characterId);
+    if (res.code === 200) {
+      setCharacterInfo(res.data);
+    }
+  }, [characterId]);
+  useEffect(() => {
+    if (open) {
+      init();
+    }
+  }, [open, init]);
   return (
     <Modal
       open={open}
@@ -63,9 +97,9 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
           <div
             className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden ${frameClass}`}
           >
-            {imageInfo ? (
+            {characterInfo?.image.url ? (
               <img
-                src={URL.createObjectURL(imageInfo)}
+                src={characterInfo?.image.url}
                 alt="character"
                 className="w-full h-full object-contain"
               />
@@ -74,26 +108,26 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
                 {t("common.no_image") ?? "No image"}
               </div>
             )}
-            {createStatus === CreateStatus.SUCCESS && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <CommonButton
-                  size="large"
-                  className="h-14 px-0 hover:scale-110 transition-transform duration-300"
-                  borderRadiusPx={54}
-                  onClick={() => {
-                    handleChat();
-                  }}
-                >
-                  <span className="text-2xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
-                    {t("common.chat")}
-                    <IconChat className="w-6 h-6" />
-                  </span>
-                </CommonButton>
-              </div>
-            )}
+            {/* {createStatus === CreateStatus.SUCCESS && ( */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center">
+              <CommonButton
+                size="large"
+                className="h-14 px-0 hover:scale-110 transition-transform duration-300"
+                borderRadiusPx={54}
+                onClick={() => {
+                  handleChat();
+                }}
+              >
+                <span className="text-2xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
+                  {t("common.chat")}
+                  <IconChat className="w-6 h-6" />
+                </span>
+              </CommonButton>
+            </div>
+            {/* )} */}
           </div>
         </div>
-        {createStatus === CreateStatus.PROCESSING ? (
+        {/* {createStatus === CreateStatus.PROCESSING ? (
           <div className="w-full flex items-center justify-center text-xl font-medium text-[#3B3D2C]">
             {t("character.character_creating")}
           </div>
@@ -108,6 +142,9 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
                 style={{ border: "2px solid #0000001A" }}
                 borderRadiusPx={54}
                 aria-label="edit-character"
+                onClick={() => {
+                  handleEdit();
+                }}
               >
                 <IconEdit className="w-4 h-4" />
               </CommonButton>
@@ -116,6 +153,9 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
                 style={{ border: "2px solid #0000001A" }}
                 borderRadiusPx={54}
                 aria-label="share-character"
+                onClick={() => {
+                  handleShare();
+                }}
               >
                 <IconShare className="w-4 h-4" />
               </CommonButton>
@@ -124,12 +164,15 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
                 style={{ border: "2px solid #0000001A" }}
                 borderRadiusPx={54}
                 aria-label="delete-character"
+                onClick={() => {
+                  handleDelete();
+                }}
               >
                 <IconDelete className="w-4 h-4 " />
               </CommonButton>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </Modal>
   );

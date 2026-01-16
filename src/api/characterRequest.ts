@@ -1,7 +1,13 @@
 import request from "./request";
 import type { ApiResponse } from "@/types";
-import type { CharacterInfo, CharacterSettings } from "@/types";
-import type { Voice, Model, SampleAsset } from "@/types/Character";
+import type { CharacterInfo } from "@/types";
+import type {
+  Voice,
+  Model,
+  SampleAsset,
+  EditCharacterRequest,
+  CreateCharacterRequest,
+} from "@/types/Character";
 
 // 主页获取角色列表 /get_user_characters
 export const getCharacterList = async (): Promise<
@@ -14,11 +20,22 @@ export const getCharacterList = async (): Promise<
 };
 
 // 获取角色设置 /character/{character_id}
-export const getCharacterSettings = async (
+export const getCharacterInfo = async (
   characterId: string
-): Promise<ApiResponse<CharacterSettings>> => {
-  const response = await request.get<ApiResponse<CharacterSettings>>(
+): Promise<ApiResponse<CharacterInfo>> => {
+  const response = await request.get<ApiResponse<CharacterInfo>>(
     `/character/${characterId}`
+  );
+  return response.data;
+};
+
+// 创建角色 /create_character
+export const createCharacter = async (
+  createCharacterRequest: CreateCharacterRequest
+): Promise<ApiResponse<CharacterInfo>> => {
+  const response = await request.post<ApiResponse<CharacterInfo>>(
+    `/create_character`,
+    { data: createCharacterRequest }
   );
   return response.data;
 };
@@ -26,8 +43,8 @@ export const getCharacterSettings = async (
 // 复制角色 /duplicate_character
 export const duplicateCharacter = async (
   characterId: string
-): Promise<ApiResponse<CharacterSettings>> => {
-  const response = await request.post<ApiResponse<CharacterSettings>>(
+): Promise<ApiResponse<CharacterInfo>> => {
+  const response = await request.post<ApiResponse<CharacterInfo>>(
     `/duplicate_character`,
     { character_id: characterId }
   );
@@ -46,15 +63,15 @@ export const deleteCharacter = async (
 };
 
 // 编辑角色 /edit_character
-// export const editCharacter = async (
-//   editCharacterRequest: EditCharacterRequest
-// ): Promise<ApiResponse<CharacterSettings>> => {
-//   const response = await request.put<ApiResponse<CharacterSettings>>(
-//     `/edit_character`,
-//     { data: editCharacterRequest }
-//   );
-//   return response.data;
-// };
+export const editCharacter = async (
+  editCharacterRequest: EditCharacterRequest
+): Promise<ApiResponse<CharacterInfo>> => {
+  const response = await request.put<ApiResponse<CharacterInfo>>(
+    `/edit_character`,
+    { data: editCharacterRequest }
+  );
+  return response.data;
+};
 
 // 音色列表 /voices_options
 export const getVoicesOptions = async (): Promise<ApiResponse<Voice[]>> => {
@@ -110,5 +127,15 @@ export const getVoiceSampleAsset = async (
   const response = await request.get<ApiResponse<SampleAsset>>(
     `/voice_sample_asset?voice_id=${voiceId}`
   );
+  return response.data;
+};
+
+// 喜欢角色 /like_character
+export const likeCharacter = async (
+  characterId: string
+): Promise<ApiResponse<null>> => {
+  const response = await request.post<ApiResponse<null>>("/like_character", {
+    character_id: characterId,
+  });
   return response.data;
 };

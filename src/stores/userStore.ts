@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { UserInfo } from "../types";
+import type { UserInfo } from "@/types/UserInfo";
 import type { UserCredits } from "../types/Login";
 import { clearAll, getToken, saveUserID } from "../utils/user_util";
 

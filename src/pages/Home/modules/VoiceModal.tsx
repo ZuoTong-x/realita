@@ -25,7 +25,6 @@ type VoiceModalProps = {
   onClose: () => void;
   onApply: (voice: ProcessedVoice | null) => void;
   voiceList: ProcessedVoice[];
-  typeList: { zh: string; en: string; key: string }[];
 };
 
 const VoiceModal: React.FC<VoiceModalProps> = ({
@@ -33,7 +32,6 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   onClose,
   onApply,
   voiceList,
-  typeList,
 }) => {
   const { message } = App.useApp();
   const [selected, setSelected] = useState<ProcessedVoice | null>(null);
@@ -41,7 +39,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
 
   const [langFilter, setLangFilter] = useState<string>("全部");
   const [genderFilter, setGenderFilter] = useState<string>("全部");
-  const [categoryFilter, setCategoryFilter] = useState<string>("全部");
+  const [ageFilter, setAgeFilter] = useState<string>("全部");
   const [activeTab, setActiveTab] = useState<string>("public");
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentAudioUrlRef = useRef<string>("");
@@ -80,16 +78,26 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     return [allGender, ...Array.from(map.values())];
   }, [currentBaseList]);
 
+  const ages = useMemo(() => {
+    const map = new Map<string, Option>();
+    currentBaseList.forEach((v) => {
+      if (v.age) {
+        map.set(v.age.key, v.age);
+      }
+    });
+    const allAge = { key: "全部", label_zh: "全部", label_en: "All" };
+    return [allAge, ...Array.from(map.values())];
+  }, [currentBaseList]);
+
   const filteredList = useMemo(() => {
     return currentBaseList.filter((v) => {
       const matchLang = langFilter === "全部" || v.language?.key === langFilter;
       const matchGender =
         genderFilter === "全部" || v.gender?.key === genderFilter;
-      const matchCategory =
-        categoryFilter === "全部" || v.type?.key === categoryFilter;
-      return matchLang && matchGender && matchCategory;
+      const matchAge = ageFilter === "全部" || v.age?.key === ageFilter;
+      return matchLang && matchGender && matchAge;
     });
-  }, [currentBaseList, langFilter, genderFilter, categoryFilter]);
+  }, [currentBaseList, langFilter, genderFilter, ageFilter]);
   const handleAudioPlay = async (ev: React.MouseEvent, v: ProcessedVoice) => {
     ev.stopPropagation();
 
@@ -190,7 +198,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
             setActiveTab(val);
             setLangFilter("全部");
             setGenderFilter("全部");
-            setCategoryFilter("全部");
+            setAgeFilter("全部");
           }}
         />
       </div>
@@ -200,7 +208,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           value={languages.find((l) => l.key === langFilter) || languages[0]}
           onChange={(item) => {
             setLangFilter(item.key);
-            setCategoryFilter("全部");
+            setAgeFilter("全部");
           }}
           formatLabel={(l) =>
             i18n.language === "zh" ? l.label_zh : l.label_en
@@ -230,16 +238,18 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
         />
 
-        <DropdownMenu<{ zh: string; en: string; key: string }>
-          list={typeList}
-          value={typeList.find((t) => t.key === categoryFilter) || typeList[0]}
+        <DropdownMenu<Option>
+          list={ages}
+          value={ages.find((a) => a.key === ageFilter) || ages[0]}
           onChange={(item) => {
-            setCategoryFilter(item.key);
+            setAgeFilter(item.key);
           }}
-          formatLabel={(c) => (i18n.language === "zh" ? c.zh : c.en)}
-          getKey={(c) => c.key}
-          isSelected={(c, v) => c.key === v?.key}
-          defaultLabel={i18n.language === "zh" ? "类型" : "Type"}
+          formatLabel={(a) =>
+            i18n.language === "zh" ? a.label_zh : a.label_en
+          }
+          getKey={(a) => a.key}
+          isSelected={(a, v) => a.key === v?.key}
+          defaultLabel={i18n.language === "zh" ? "年龄" : "Age"}
           iconActive={<IconModelBlack className="w-4 h-4" />}
           iconInactive={<IconModelGray className="w-4 h-4" />}
           iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
@@ -325,8 +335,22 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                     <span className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-[180px] text-center">
                       {v.friendly_name}
                     </span>
-                    <span className="text-xs text-[#666]">
-                      {i18n.language === "zh" ? v.type?.zh : v.type?.en}
+                    <span className="text-xs text-[#666] flex items-center gap-1">
+                      <span>
+                        {i18n.language === "zh"
+                          ? v.gender?.label_zh
+                          : v.gender?.label_en}
+                      </span>
+                      <span>
+                        {i18n.language === "zh"
+                          ? v.age?.label_zh
+                          : v.age?.label_en}
+                      </span>
+                      <span>
+                        {i18n.language === "zh"
+                          ? v.language?.label_zh
+                          : v.language?.label_en}
+                      </span>
                     </span>
                   </div>
                   <div

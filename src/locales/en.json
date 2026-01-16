@@ -3,7 +3,7 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "close": "Close",
-    "chat": "chat",
+    "chat": "Chat",
     "settings": "Settings",
     "logout": "Logout",
     "profile": "Profile",
@@ -63,11 +63,9 @@
     "video_prompt": "Video Prompt",
     "llm_prompt_placeholder": "Please enter LLM prompt...",
     "video_prompt_placeholder": "Please enter video prompt...",
-    "select_voice": "Select Voice"
-  },
-  "character": {
-    "character_creating": "Character creating...",
-    "generated_success": "Character Generated Successfully!"
+    "select_voice": "Select Voice",
+    "create_character_success": "Character created successfully",
+    "create_character_failed": "Character created failed"
   },
   "live": {
     "lack_of_key_data": "Lack of key data, please start a new conversation",

@@ -165,13 +165,41 @@
   border: 1px solid #e6e6e6;
   background: #ffffff;
   color: #32333d;
-  padding: 2px 8px;
-  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
   user-select: none;
+}
+
+/* Small size (default) */
+.like-tag-small {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+/* Medium size - 88px height, min-width 264px (88*3) */
+.like-tag-medium {
+  padding: 4px 16px;
+  border-radius: 44px;
+  font-size: 16px;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* Large size */
+.like-tag-large {
+  padding: 6px 24px;
+  border-radius: 56px;
+  font-size: 20px;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* No border variant */
+.like-tag-no-border {
+  border: none !important;
 }
 
 .like-icon-outline {

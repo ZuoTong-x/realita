@@ -1,7 +1,7 @@
 import request from "./request";
 import type { ApiResponse } from "@/types";
 import type { Examples, TokenInfo, UserCredits } from "@/types/Login";
-
+import type { UserInfo } from "@/types/UserInfo";
 // 首页优秀示例列表 /showcase_examples
 export const getShowcaseExampleList = async (): Promise<
   ApiResponse<Examples[]>
@@ -36,5 +36,21 @@ export const signOut = async (): Promise<ApiResponse<null>> => {
 export const getUserCredits = async (): Promise<ApiResponse<UserCredits>> => {
   const response =
     await request.get<ApiResponse<UserCredits>>("/get_user_credits");
+  return response.data;
+};
+
+// 获取用户信息; /get_user_info;
+export const getUserInfo = async (): Promise<ApiResponse<UserInfo>> => {
+  const response = await request.get<ApiResponse<UserInfo>>("/get_user_info");
+  return response.data;
+};
+
+// 获取用户喜欢的角色列表; /get_user_liked_characters
+export const getUserLikedCharacters = async (): Promise<
+  ApiResponse<string[]>
+> => {
+  const response = await request.get<ApiResponse<string[]>>(
+    "/get_user_liked_characters"
+  );
   return response.data;
 };

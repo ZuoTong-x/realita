@@ -6,10 +6,11 @@ import { useTranslation } from "react-i18next";
 import CharacterSwiper from "./modules/CharacterSwiper";
 import CharacterSlider from "./modules/CharacterSlider";
 import CharacterCreate from "./modules/CharacterCreate";
-import CharacterPreview from "./modules/CharacterPreview";
+
 import { getCharacterList } from "@/api";
 import useCharacterListStore from "@/stores/characterListStore";
 import type { CharacterInfo } from "@/types/Character";
+import { getUserLikedCharacters } from "@/api/login";
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -18,10 +19,11 @@ const HomePage = () => {
     setCharacterList,
     currentCharacter,
     setCurrentCharacter,
+    setUserLikedCharacters,
   } = useCharacterListStore();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+
   const [createCharacterInfo, setCreateCharacterInfo] =
     useState<CharacterInfo | null>(null);
   const init = useCallback(async () => {
@@ -32,7 +34,11 @@ const HomePage = () => {
         setCurrentCharacter(res.data[0]);
       }
     }
-  }, [setCharacterList, setCurrentCharacter]);
+    const likedCharacters = await getUserLikedCharacters();
+    if (likedCharacters.code === 200) {
+      setUserLikedCharacters(likedCharacters.data);
+    }
+  }, [setCharacterList, setCurrentCharacter, setUserLikedCharacters]);
 
   useEffect(() => {
     init();
@@ -82,11 +88,6 @@ const HomePage = () => {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         characterInfo={createCharacterInfo}
-      />
-      {/* 角色预览弹窗 */}
-      <CharacterPreview
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
       />
     </div>
   );

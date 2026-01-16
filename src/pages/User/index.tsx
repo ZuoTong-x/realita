@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import testPng from "@/assets/images/test.png";
 import { Avatar, List, Card, Tag } from "antd";
 import CommonButton from "@/components/Common/Button";
@@ -11,52 +11,12 @@ import IconChat from "@/assets/svg/IconChat.svg?react";
 import { useTranslation } from "react-i18next";
 import CharacterCreate from "@/pages/Home/modules/CharacterCreate";
 import type { Character, CharacterInfo } from "@/types/Character";
-
-import IconLikeFilled from "@/assets/svg/IconLikeFilled.svg?react";
-
+import LikeTag from "@/components/LikeTag";
+import { getUserLikedCharacters } from "@/api/login";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
 
 // Like Tag Component with animation
-const LikeTag = ({
-  likeCount,
-  onClick,
-}: {
-  likeCount: number;
-  onClick?: () => void;
-}) => {
-  const [isLiked, setIsLiked] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsLiked(!isLiked);
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 600);
-    onClick?.();
-  };
-
-  return (
-    <Tag className="like-tag cursor-pointer" onClick={handleClick}>
-      <span className="flex items-center gap-1">
-        {isLiked ? (
-          <IconLikeFilled
-            className={`w-3 h-4 like-icon-filled ${
-              isAnimating ? "like-icon-animate" : ""
-            }`}
-          />
-        ) : (
-          <IconLike
-            className={`w-3 h-3 like-icon-outline ${
-              isAnimating ? "like-icon-animate" : ""
-            }`}
-          />
-        )}
-        <span>{likeCount}</span>
-      </span>
-    </Tag>
-  );
-};
 
 const UserPage = () => {
   const { t } = useTranslation();
@@ -66,6 +26,7 @@ const UserPage = () => {
     useState<CharacterInfo | null>(null);
   const navigate = useNavigate();
   const { userInfo, logoutStore } = useUserStore();
+  const [userLikedCharacters, setUserLikedCharacters] = useState<string[]>([]);
 
   const tabsList = [
     { label: t("user.history"), value: "history", icon: <IconHistory /> },
@@ -208,6 +169,10 @@ const UserPage = () => {
     },
   ];
 
+  const handleLike = (characterId: string) => {
+    console.log("handleLike", characterId);
+  };
+
   const handleChat = (_character: Character) => {
     // Character 类型与 CharacterInfo 不兼容，暂时传 null
     // TODO: 需要将 Character 转换为 CharacterInfo 或使用正确的类型
@@ -220,6 +185,17 @@ const UserPage = () => {
     navigate("/login");
   };
 
+  const handleGetUserLikedCharacters = async () => {
+    const res = await getUserLikedCharacters();
+    if (res.code === 200) {
+      setUserLikedCharacters(res.data);
+    }
+  };
+
+  useEffect(() => {
+    handleGetUserLikedCharacters();
+  }, []);
+
   return (
     <div className="w-full h-full min-w-[800px] max-w-[1280px] mx-auto flex flex-col justify-start items-center default-bg-container relative px-10 pt-24 pb-4 gap-6">
       <div className="w-full flex">
@@ -228,7 +204,7 @@ const UserPage = () => {
         </div>
         <div className="flex-1 ml-4 flex flex-col justify-between items-start py-1">
           <div className="text-lg font-medium text-[#32333D]">
-            {userInfo?.nickname}
+            {userInfo?.username}
           </div>
           <div className="text-sm text-[#B1B6BD]">{userInfo?.email}</div>
         </div>
@@ -286,7 +262,7 @@ const UserPage = () => {
                   </div>
 
                   <div className="w-full flex items-center justify-between">
-                    <LikeTag likeCount={item.likeCount} />
+                    <LikeTag characterId={item.id} likeCount={item.likeCount} />
                   </div>
 
                   <div className="w-full flex flex-col gap-1">
