@@ -10,6 +10,7 @@ type RadioTabsProps = {
     tooltip?: string;
     disabled?: boolean;
   }[];
+  disable?: boolean;
   activeValue: string;
   onChange: (value: string) => void;
   iconPosition?: "left" | "right"; // "left" = icon在前（正序）, "right" = label在前（倒序）
@@ -18,6 +19,7 @@ type RadioTabsProps = {
 
 const RadioTabs = ({
   tabsList,
+  disable = false,
   activeValue,
   onChange,
   iconPosition = "left",
@@ -64,6 +66,7 @@ const RadioTabs = ({
       className={cn("w-full flex items-center justify-center", tabsClassName)}
     >
       <Segmented
+        disabled={disable}
         options={options}
         shape="round"
         value={activeValue}

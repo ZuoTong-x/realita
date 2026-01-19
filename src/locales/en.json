@@ -53,7 +53,7 @@
     "enter_character_prompt": "character setting prompt",
     "enter_voice_name": "voice name",
     "please_upload_image": "Please upload an image first",
-    "start_conversation": "Start conversation",
+    "create_character": "Create character",
     "please_select_voice": "Please select a voice",
     "end_conversation": "End conversation",
     "service_running": "Service is running",
@@ -65,7 +65,12 @@
     "video_prompt_placeholder": "Please enter video prompt...",
     "select_voice": "Select Voice",
     "create_character_success": "Character created successfully",
-    "create_character_failed": "Character created failed"
+    "create_character_failed": "Character created failed",
+    "edit_character_success": "Character edited successfully",
+    "edit_character_failed": "Character edited failed",
+    "edit_character": "Edit character",
+    "delete_character_success": "Character deleted successfully",
+    "delete_character_failed": "Character deleted failed"
   },
   "live": {
     "lack_of_key_data": "Lack of key data, please start a new conversation",
@@ -82,5 +87,24 @@
     "history": "History",
     "likes": "Likes",
     "assets": "Assets"
+  },
+  "queue": {
+    "joined_queue": "Joined queue",
+    "join_queue_failed": "Failed to join queue",
+    "in_queue": "In Queue ...",
+    "users_ahead": "Users ahead",
+    "estimate_time": "Estimated wait",
+    "minutes": "minutes",
+    "expire_in": "Time remaining",
+    "seconds": "seconds",
+    "leave_queue": "Leave Queue",
+    "left_queue": "Left queue",
+    "ready_to_chat": "Ready to chat!",
+    "joining": "Joining...",
+    "not_in_queue": "You are not in the queue, please rejoin",
+    "users": "users"
+  },
+  "character": {
+    "generated_success": "Character Generated Successfully"
   }
 }

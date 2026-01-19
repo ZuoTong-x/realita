@@ -7,6 +7,7 @@ import type {
   SampleAsset,
   EditCharacterRequest,
   CreateCharacterRequest,
+  QueueStatus,
 } from "@/types/Character";
 
 // 主页获取角色列表 /get_user_characters
@@ -35,7 +36,7 @@ export const createCharacter = async (
 ): Promise<ApiResponse<CharacterInfo>> => {
   const response = await request.post<ApiResponse<CharacterInfo>>(
     `/create_character`,
-    { data: createCharacterRequest }
+    { ...createCharacterRequest }
   );
   return response.data;
 };
@@ -68,7 +69,7 @@ export const editCharacter = async (
 ): Promise<ApiResponse<CharacterInfo>> => {
   const response = await request.put<ApiResponse<CharacterInfo>>(
     `/edit_character`,
-    { data: editCharacterRequest }
+    { ...editCharacterRequest }
   );
   return response.data;
 };
@@ -139,3 +140,41 @@ export const likeCharacter = async (
   });
   return response.data;
 };
+
+// /api/v1/dislike_character 取消点赞角色
+export const dislikeCharacter = async (
+  characterId: string
+): Promise<ApiResponse<null>> => {
+  const response = await request.delete<ApiResponse<null>>("/dislike_character", {
+    data: { character_id: characterId },
+  });
+  return response.data;
+};
+
+// 加入队列 /join_queue
+export const joinQueue = async (characterId: string): Promise<ApiResponse<QueueStatus>> => {
+  const response = await request.post<ApiResponse<QueueStatus>>("/join_queue", {
+    character_id: characterId,
+  });
+  return response.data;
+};
+
+// 获取排队情况
+// GET /queue_status
+
+export const getQueueStatus = async (): Promise<ApiResponse<QueueStatus>> => {
+  const response = await request.get<ApiResponse<QueueStatus>>("/queue_status");
+  return response.data;
+};
+
+// 离开队列 /leave_queue
+export const leaveQueue = async (): Promise<ApiResponse<null>> => {
+  const response = await request.delete<ApiResponse<null>>("/leave_queue");
+  return response.data;
+};
+
+// 发送排队心跳信号 /api/v1/queue_heartbeat
+export const sendQueueHeartbeat = async (): Promise<ApiResponse<null>> => {
+  const response = await request.put<ApiResponse<null>>("/queue_heartbeat");
+  return response.data;
+};  

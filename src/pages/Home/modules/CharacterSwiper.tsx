@@ -292,7 +292,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                   }}
                 >
                   <video
-                    src={character.video.url}
+                    src={character.video?.url||''}
                     poster={character.image.url}
                     autoPlay={false}
                     loop
@@ -303,15 +303,15 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                     }}
                     className="w-full h-full object-cover relative z-0"
                   >
-                    <source src={character.video.url} type="video/mp4" />
+                    <source src={character.video?.url||''} type="video/mp4" />
                   </video>
 
                   {isCenter && (
                     <>
-                      <div className="absolute top-3 right-3 flex items-center justify-center">
+                     { character.number_of_likes!==null && <div className="absolute top-3 right-3 flex items-center justify-center">
                         <LikeTag
                           characterId={character.character_id}
-                          likeCount={character.number_of_likes || 0}
+                          likeCount={character.number_of_likes}
                           isLiked={userLikedCharacters.includes(
                             character.character_id
                           )}
@@ -323,7 +323,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                             showBorder: false,
                           }}
                         />
-                      </div>
+                      </div>}
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center group-hover:opacity-100 opacity-0 transition-opacity duration-300">
                         <CommonButton
                           size="large"

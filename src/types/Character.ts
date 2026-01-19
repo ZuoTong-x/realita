@@ -1,10 +1,4 @@
-export interface Character {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  voice: string;
-}
+import type { Ratio } from "./Live";
 
 export enum CreateStatus {
   INIT = "init",
@@ -181,6 +175,7 @@ export interface EditCharacterRequest {
    * 修改后的音色主键。如果不希望修改，则不传入该项。
    */
   voice_id?: string;
+  video_model_id?: string;
 }
 
 export interface CreateCharacterRequest {
@@ -191,3 +186,35 @@ export interface CreateCharacterRequest {
   video_prompt: string;
   voice_id: string;
 }
+export interface ExtendedLipSyncModelInfo extends LipSyncModelInfo {
+  id?: string;
+}
+
+
+export interface CharacterFormData {
+  name: string;
+  llm_prompt: string;
+  video_prompt: string;
+  voice: ProcessedVoice | null;
+  model: ExtendedLipSyncModelInfo | null;
+  imageUrl: string | null;
+  ratio: Ratio;
+}
+
+
+export interface QueueStatus {
+  /**
+ * 预估等待时间(秒),如果用户不在队列中则为None
+ */
+  estimate_time: number | null;
+  /**
+   * 距离被踢出队列的剩余时间(秒),如果已超时则为负数,
+   * 如果用户不在队列中则为None
+   */
+  expire_time: number | null;
+  /**
+   * 排在前面的用户数量,如果用户不在队列中则为None
+   */
+  number_of_users_ahead: number | null;
+}
+

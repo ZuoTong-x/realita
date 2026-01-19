@@ -9,7 +9,6 @@ import "./cropper.css";
 import DropdownMenu from "@/components/DropdownMenu";
 import VoiceModal from "./VoiceModal";
 import RadioTabs from "@/components/RadioTabs";
-import CharacterPreview from "./CharacterPreview";
 
 import IconRoleAdd from "@/assets/svg/IconRoleAdd.svg?react";
 import IconCloseBGBlur from "@/assets/svg/IconCloseBGBlur.svg?react";
@@ -28,20 +27,24 @@ import IconRadio11 from "@/assets/svg/IconRadio_1_1.svg?react";
 
 import { Ratio } from "@/types/Live";
 import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
-import { useLiveService } from "@/hooks/useLiveService";
+
 import { useVoiceProcessing } from "@/hooks/useVoiceProcessing";
 import { DEFAULT_VIDEO_PROMPT } from "@/constants";
 import type {
   Voice,
-  ProcessedVoice,
+  CharacterFormData,
+  ExtendedLipSyncModelInfo,
   CharacterInfo,
   LipSyncModelInfo,
   CreateCharacterRequest,
+
 } from "@/types/Character";
 import { LipSyncMotionStyle } from "@/types/Character";
+import type { EditCharacterRequest } from "@/types/Character";
 import {
   getVoiceSampleAsset,
   createCharacter as createCharacterApi,
+  editCharacter,
 } from "@/api/characterRequest";
 import { uploadAssetFile } from "@/api/common";
 import type { RatioItem } from "@/types/Live";
@@ -50,28 +53,18 @@ type CharacterCreateProps = {
   open: boolean;
   characterInfo?: CharacterInfo | null;
   onClose: () => void;
+  onSuccess?: (characterId: string, ratio: Ratio) => void;
 };
 
 const DEFAULT_MODEL_NAME = "SekoTalk";
 
-interface ExtendedLipSyncModelInfo extends LipSyncModelInfo {
-  id?: string;
-}
 
-interface CharacterFormData {
-  name: string;
-  llm_prompt: string;
-  video_prompt: string;
-  voice: ProcessedVoice | null;
-  model: ExtendedLipSyncModelInfo | null;
-  imageUrl: string | null;
-  ratio: Ratio;
-}
 
 const CharacterCreate: React.FC<CharacterCreateProps> = ({
   open,
   onClose,
   characterInfo,
+  onSuccess,
 }) => {
   const { message } = App.useApp();
   const { t, i18n } = useTranslation();
@@ -102,7 +95,6 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   const characterIdRef = useRef<string>("");
 
   // --- State ---
-  // 统一的表单数据对象
   const [formData, setFormData] = useState<CharacterFormData>({
     name: "",
     llm_prompt: "",
@@ -112,7 +104,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     imageUrl: null,
     ratio: Ratio.PORTRAIT,
   });
-
+  const [type, setType] = useState<"create" | "edit">("create");
   // 其他独立的状态（与表单数据无关）
   const [lipSyncModels, setLipSyncModels] = useState<
     ExtendedLipSyncModelInfo[]
@@ -123,9 +115,8 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     "playing" | "loading" | "idle"
   >("idle");
 
-  const [characterPreviewOpen, setCharacterPreviewOpen] = useState(false);
+  const [defaultData, setDefaultData] = useState<CharacterInfo | null>(null);
 
-  // 更新表单数据的辅助函数
   const updateFormData = useCallback(
     <K extends keyof CharacterFormData>(
       key: K,
@@ -139,7 +130,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     []
   );
 
-  // 批量更新表单数据
+
   const updateFormDataBatch = useCallback(
     (updates: Partial<CharacterFormData>) => {
       setFormData((prev) => ({ ...prev, ...updates }));
@@ -147,8 +138,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     []
   );
   // --- Custom Hooks ---
-  const { setServiceStatus, setSessionId, isServiceRunning, stopLiveService } =
-    useLiveService();
+
 
   const { processedVoiceList } = useVoiceProcessing(voiceList);
 
@@ -173,12 +163,28 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   };
 
   const createCharacter = async () => {
-    if (!cropperRef.current || !formData.imageUrl) {
-      message.error(t("home.please_upload_image"));
-      return;
-    }
 
-    try {
+    if (type === "create") {
+      if (imgFileRef.current === null) {
+        message.error(t("home.please_upload_image"));
+        return;
+      }
+
+    } else {
+      if (imgFileRef.current === null && !formData.imageUrl) {
+        message.error(t("home.please_upload_image"));
+        return;
+      }
+    }
+    const payload: CreateCharacterRequest = {
+      image_id: "",
+      llm_prompt: formData.llm_prompt,
+      name: formData.name,
+      video_model_id: formData.model?.id || "",
+      video_prompt: formData.video_prompt,
+      voice_id: formData.voice?.id || "",
+    };
+    if (imgFileRef.current !== null && cropperRef.current !== null) {
       const cropper = cropperRef.current.cropper;
 
       // 根据 ratio 确定裁剪尺寸
@@ -205,29 +211,38 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       const blob: Blob | null = await new Promise((resolve) =>
         canvas.toBlob((b) => resolve(b), mime)
       );
-
       if (blob) {
         const file = new File([blob], `cropped-image.${ext}`, { type: mime });
         const imageId = await uploadAssetFile(file);
-        const payload: CreateCharacterRequest = {
-          image_id: imageId.data.id,
-          llm_prompt: formData.llm_prompt,
-          name: formData.name || "default",
-          video_model_id: formData.model?.id || "",
-          video_prompt: formData.video_prompt,
-          voice_id: formData.voice?.id || "",
-        };
-        const res = await createCharacterApi(payload);
-        if (res.code === 200) {
-          message.success(t("home.create_character_success"));
-          onClose();
-          characterIdRef.current = res.data.character_id;
-        } else {
-          message.error(t("home.create_character_failed"));
-        }
+        payload.image_id = imageId.data.id;
       }
-    } catch {
-      message.error(t("common.error"));
+    }
+    if (type === "edit") {
+      const params: EditCharacterRequest = {
+        character_id: characterIdRef.current,
+      };
+      if (imgFileRef.current !== null && payload.image_id) params.image_id = payload.image_id;
+      if (formData.name !== defaultData?.character_name) params.name = formData.name;
+      if (formData.llm_prompt !== defaultData?.llm_prompt) params.llm_prompt = formData.llm_prompt;
+      if (formData.video_prompt !== defaultData?.video_prompt) params.video_prompt = formData.video_prompt;
+      if (formData.voice?.id !== defaultData?.voice.id) params.voice_id = formData.voice?.id;
+      if (formData.model?.id !== defaultData?.video_model_id) params.video_model_id = formData.model?.id;
+      const res = await editCharacter(params);
+      if (res.code === 200) {
+        onClose();
+        onSuccess?.(characterIdRef.current, formData.ratio);
+      } else {
+        message.error(t("home.edit_character_failed"));
+      }
+    } else {
+      const res = await createCharacterApi(payload);
+      if (res.code === 200) {
+        onClose();
+        characterIdRef.current = res.data.character_id;
+        onSuccess?.(res.data.character_id, formData.ratio);
+      } else {
+        message.error(t("home.create_character_failed"));
+      }
     }
   };
 
@@ -253,16 +268,18 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
 
   const init = useCallback(async () => {
     if (characterInfo) {
-      // 从传入的 characterInfo 初始化表单数据
       updateFormDataBatch({
         name: characterInfo.character_name || "",
         llm_prompt: characterInfo.llm_prompt || "",
         video_prompt: characterInfo.video_prompt || DEFAULT_VIDEO_PROMPT,
-        voice: null, // 将在 useEffect 中设置
-        model: null, // 将在 fetchOptions 后设置
+        voice: null,
+        model: null,
         imageUrl: characterInfo.image.url,
-        ratio: Ratio.PORTRAIT, // 保持默认值
+        ratio: Ratio.PORTRAIT,
       });
+      characterIdRef.current = characterInfo.character_id;
+      setDefaultData(characterInfo);
+      setType("edit");
     } else {
       // 重置为默认值
       updateFormDataBatch({
@@ -275,9 +292,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         ratio: Ratio.PORTRAIT,
       });
       imgFileRef.current = null;
+      setType("create");
     }
     await fetchOptions();
   }, [characterInfo, fetchOptions, updateFormDataBatch]);
+
   const handleAudioPlay = async (ev: React.MouseEvent) => {
     ev.stopPropagation();
 
@@ -331,7 +350,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     }
   };
   // --- Effects ---
-  // 当 ratio 变化时，更新 cropper 的 aspectRatio
+
   useEffect(() => {
     if (cropperRef.current) {
       const cropper = cropperRef.current.cropper;
@@ -384,12 +403,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         imageUrl: null,
         ratio: Ratio.PORTRAIT,
       });
-      setServiceStatus("idle");
-      setSessionId(null);
+
       imgFileRef.current = null;
       if (imgInputRef.current) imgInputRef.current.value = "";
     }
-  }, [open, init, setServiceStatus, setSessionId, updateFormDataBatch]);
+  }, [open, init, updateFormDataBatch]);
 
   return (
     <Modal
@@ -398,6 +416,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       centered
       title={
         <RadioTabs
+          disable={imgFileRef.current === null}
           tabsList={tabsList}
           activeValue={formData.ratio}
           onChange={(value) => updateFormData("ratio", value as Ratio)}
@@ -429,13 +448,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           <button
             className="h-8 px-[14px] flex items-center bg-[#F6F3F3] rounded-full cursor-pointer"
             onClick={() =>
-              isServiceRunning() ? stopLiveService() : createCharacter()
+              createCharacter()
             }
           >
             <span className="text-sm font-normal text-[#3B3D2C]">
-              {isServiceRunning()
-                ? t("home.end_conversation")
-                : t("home.start_conversation")}
+              {type === "create" ? t("home.create_character") : t("home.edit_character")}
             </span>
             <IconStar className="w-4 h-4 mx-1" />
           </button>
@@ -452,7 +469,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           className="w-full h-[18rem] flex items-center justify-center border border-black/30 rounded-2xl relative"
           onClick={() => !formData.imageUrl && imgInputRef.current?.click()}
         >
-          {formData.imageUrl ? (
+          {formData.imageUrl ? imgFileRef.current === null ? (
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img src={formData.imageUrl} alt="character image" className="w-full h-full object-contain " />
+            </div>
+          ) : (
             <div className="relative w-full h-full flex items-center justify-center">
               <Cropper
                 className="w-full h-full"
@@ -624,12 +645,6 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           updateFormData("voice", v);
           setVoiceModalOpen(false);
         }}
-      />
-      <CharacterPreview
-        open={characterPreviewOpen}
-        onClose={() => setCharacterPreviewOpen(false)}
-        characterId={characterIdRef.current}
-        ratio={formData.ratio}
       />
     </Modal>
   );

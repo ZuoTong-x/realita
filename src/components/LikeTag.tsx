@@ -2,7 +2,7 @@ import IconLikeFilled from "@/assets/svg/IconLikeFilled.svg?react";
 import IconLike from "@/assets/svg/IconLike.svg?react";
 import { useState, useEffect } from "react";
 import { Tag, App } from "antd";
-import { likeCharacter } from "@/api/characterRequest";
+import { likeCharacter, dislikeCharacter } from "@/api/characterRequest";
 
 export const LikeTag = ({
   characterId,
@@ -55,7 +55,7 @@ export const LikeTag = ({
 
     // 防止重复点击
     if (isLoading) return;
-
+   
     // 保存旧状态，用于失败时回滚
     const oldIsLiked = isLiked;
     const oldLikeCount = likeCount;
@@ -74,8 +74,10 @@ export const LikeTag = ({
     setTimeout(() => setIsAnimating(false), 600);
 
     try {
-      // 调用API
-      const res = await likeCharacter(characterId);
+      // 根据当前状态决定调用点赞或取消点赞接口
+      const res = oldIsLiked
+        ? await dislikeCharacter(characterId)
+        : await likeCharacter(characterId);
 
       if (res.code === 200) {
         // API 成功，通知父组件更新
@@ -85,7 +87,7 @@ export const LikeTag = ({
         // API 失败，回滚状态
         setIsLiked(oldIsLiked);
         setLikeCount(oldLikeCount);
-        message.error(res.msg || "点赞操作失败，请稍后重试");
+        message.error(res.msg || "操作失败，请稍后重试");
       }
     } catch (error) {
       // 请求异常，回滚状态

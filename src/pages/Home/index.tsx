@@ -6,11 +6,12 @@ import { useTranslation } from "react-i18next";
 import CharacterSwiper from "./modules/CharacterSwiper";
 import CharacterSlider from "./modules/CharacterSlider";
 import CharacterCreate from "./modules/CharacterCreate";
+import CharacterPreview from "./modules/CharacterPreview";
 
-import { getCharacterList } from "@/api";
+import { getCharacterList, getUserLikedCharacters } from "@/api";
 import useCharacterListStore from "@/stores/characterListStore";
 import type { CharacterInfo } from "@/types/Character";
-import { getUserLikedCharacters } from "@/api/login";
+import { Ratio } from "@/types/Live";
 
 const HomePage = () => {
   const { t } = useTranslation();
@@ -26,6 +27,11 @@ const HomePage = () => {
 
   const [createCharacterInfo, setCreateCharacterInfo] =
     useState<CharacterInfo | null>(null);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewCharacterId, setPreviewCharacterId] = useState("");
+  const [previewRatio, setPreviewRatio] = useState<Ratio>(Ratio.PORTRAIT);
+  
   const init = useCallback(async () => {
     const res = await getCharacterList();
     if (res.code === 200) {
@@ -42,11 +48,41 @@ const HomePage = () => {
 
   useEffect(() => {
     init();
+    const urlParams = new URLSearchParams(window.location.search);
+    const characterId = urlParams.get('characterId');
+    if (characterId) {
+      setPreviewCharacterId(characterId);
+      setPreviewRatio(Ratio.PORTRAIT); // 默认使用竖屏比例
+      setPreviewOpen(true);
+    }
   }, [init]);
 
+  // 从轮播直接打开预览
   const handleChat = (character: CharacterInfo) => {
+    setPreviewCharacterId(character.character_id);
+    setPreviewRatio(Ratio.PORTRAIT); // 默认使用竖屏比例
+    setPreviewOpen(true);
+  };
+
+  // 从预览切换到编辑
+  const handleEditFromPreview = (character: CharacterInfo) => {
+    setPreviewOpen(false);
     setCreateCharacterInfo(character);
     setCreateOpen(true);
+  };
+
+  // 创建/编辑成功后打开预览
+  const handleCharacterSuccess = (characterId: string, ratio: Ratio) => {
+    setPreviewCharacterId(characterId);
+    setPreviewRatio(ratio);
+    setPreviewOpen(true);
+    init()
+  };
+
+  const handleDeleteFromPreview = () => {
+    setPreviewOpen(false);
+    setPreviewCharacterId("");
+    init()
   };
   return (
     <div className="w-full h-full min-w-[800px] flex flex-col justify-between items-center default-bg-container relative">
@@ -88,6 +124,16 @@ const HomePage = () => {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         characterInfo={createCharacterInfo}
+        onSuccess={handleCharacterSuccess}
+      />
+      {/** 角色预览弹窗 */}
+      <CharacterPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        characterId={previewCharacterId}
+        ratio={previewRatio}
+        onEdit={handleEditFromPreview}
+        onDelete={handleDeleteFromPreview}
       />
     </div>
   );

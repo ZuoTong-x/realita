@@ -190,8 +190,8 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       <div className="w-auto">
         <RadioTabs
           tabsList={[
-            { label: "公共", value: "public" },
-            { label: "收藏", value: "favorites" },
+            { label: i18n.language === "zh" ? "公共" : "Public", value: "public" },
+            { label: i18n.language === "zh" ? "收藏" : "Favorites", value: "favorites" },
           ]}
           activeValue={activeTab}
           onChange={(val) => {

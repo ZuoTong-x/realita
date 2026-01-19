@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import testPng from "@/assets/images/test.png";
+
 import { Avatar, List, Card, Tag } from "antd";
 import CommonButton from "@/components/Common/Button";
 import RadioTabs from "@/components/RadioTabs";
@@ -10,11 +10,13 @@ import IconLogout from "@/assets/svg/IconLogOut.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import { useTranslation } from "react-i18next";
 import CharacterCreate from "@/pages/Home/modules/CharacterCreate";
-import type { Character, CharacterInfo } from "@/types/Character";
+import CharacterPreview from "@/pages/Home/modules/CharacterPreview";
+import type { CharacterInfo } from "@/types/Character";
 import LikeTag from "@/components/LikeTag";
-import { getUserLikedCharacters } from "@/api/login";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
+import { getCharacterList, getUserLikedCharacters } from "@/api";
+import { Ratio } from "@/types/Live";
 
 // Like Tag Component with animation
 
@@ -27,7 +29,11 @@ const UserPage = () => {
   const navigate = useNavigate();
   const { userInfo, logoutStore } = useUserStore();
   const [userLikedCharacters, setUserLikedCharacters] = useState<string[]>([]);
-
+  const [characterList, setCharacterList] = useState<CharacterInfo[]>([]);
+  
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewCharacterId, setPreviewCharacterId] = useState("");
+  const [previewRatio, setPreviewRatio] = useState<Ratio>(Ratio.PORTRAIT);
   const tabsList = [
     { label: t("user.history"), value: "history", icon: <IconHistory /> },
     { label: t("user.likes"), value: "likes", icon: <IconLike /> },
@@ -37,152 +43,39 @@ const UserPage = () => {
       icon: <IconUser className="w-5 h-5" />,
     },
   ];
-  const cardList: (Character & { likeCount: number })[] = [
-    {
-      id: "1",
-      image: testPng,
-      name: "test",
-      description:
-        "测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度测试详情长度",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "2",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "3",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "4",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "5",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "6",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "7",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "8",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "9",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "10",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "11",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "12",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "13",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "14",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "15",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-    {
-      id: "16",
-      image: testPng,
-      name: "test",
-      description: "test",
-      voice: "test",
-      likeCount: 100,
-    },
-  ];
 
-  const handleLike = (characterId: string) => {
-    console.log("handleLike", characterId);
+
+  // 从列表直接打开预览
+  const handleChat = (_character: CharacterInfo) => {
+    setPreviewCharacterId(_character.character_id);
+    setPreviewRatio(Ratio.PORTRAIT); // 默认使用竖屏比例
+    setPreviewOpen(true);
   };
 
-  const handleChat = (_character: Character) => {
-    // Character 类型与 CharacterInfo 不兼容，暂时传 null
-    // TODO: 需要将 Character 转换为 CharacterInfo 或使用正确的类型
-    setCreateCharacterInfo(null);
+  // 从预览切换到编辑
+  const handleEditFromPreview = (character: CharacterInfo) => {
+    setPreviewOpen(false);
+    setCreateCharacterInfo(character);
     setCreateOpen(true);
+  };
+
+  // 创建/编辑成功后打开预览
+  const handleCharacterSuccess = (characterId: string, ratio: Ratio) => {
+    setPreviewCharacterId(characterId);
+    setPreviewRatio(ratio);
+    setPreviewOpen(true);
   };
 
   const handleLogOut = () => {
     logoutStore();
     navigate("/login");
+  };
+
+  const handleGetCharacterList = async () => {
+    const res = await getCharacterList();
+    if (res.code === 200) {
+      setCharacterList(res.data);
+    }
   };
 
   const handleGetUserLikedCharacters = async () => {
@@ -193,6 +86,7 @@ const UserPage = () => {
   };
 
   useEffect(() => {
+    handleGetCharacterList();
     handleGetUserLikedCharacters();
   }, []);
 
@@ -231,46 +125,46 @@ const UserPage = () => {
       <div className="w-full flex-1 overflow-y-auto custom-scrollbar min-h-0 pr-2">
         <List
           grid={{ gutter: 16, column: 4 }}
-          dataSource={cardList}
+          dataSource={characterList}
           renderItem={(item) => (
             <List.Item>
               <Card className="w-full h-full cursor-pointer user-card-item transition-all duration-300">
                 <div className="w-full flex flex-col gap-2 relative group">
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden">
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={item.image.url}
+                      alt={item.character_name||''}
                       className="w-full h-full object-cover"
                     />
                     {/* Chat button overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300 opacity-0 group-hover:opacity-100">
+                    <div className="absolute inset-0 flex items-end justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300 opacity-0 group-hover:opacity-100">
                       <CommonButton
-                        size="large"
-                        className="h-12 px-0 hover:scale-110 transition-transform duration-300 absolute bottom-[10px] left-1/2 -translate-x-1/2"
-                        borderRadiusPx={54}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleChat(item);
-                        }}
-                      >
-                        <span className="text-lg font-medium text-[#333] flex items-center gap-3 justify-center px-8">
-                          {t("common.chat")}
-                          <IconChat className="w-5 h-5" />
-                        </span>
-                      </CommonButton>
+                          size="large"
+                          className="h-10 px-0 hover:scale-110 transition-transform duration-300 mb-4"
+                          borderRadiusPx={54}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleChat(item);
+                          }}
+                        >
+                          <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
+                            {t("common.chat")}
+                            <IconChat className="w-6 h-4" />
+                          </span>
+                        </CommonButton>
                     </div>
                   </div>
 
                   <div className="w-full flex items-center justify-between">
-                    <LikeTag characterId={item.id} likeCount={item.likeCount} />
+                    <LikeTag characterId={item.character_id} likeCount={item.number_of_likes || 0} isLiked={userLikedCharacters.includes(item.character_id)}  />
                   </div>
 
                   <div className="w-full flex flex-col gap-1">
                     <div className="text-base font-semibold text-[#32333D] line-clamp-1">
-                      {item.name}
+                      {item.character_name}
                     </div>
                     <div className="text-xs text-[#B1B6BD] h-10 line-clamp-2 leading-relaxed">
-                      {item.description}
+                      {item.llm_prompt}
                     </div>
                   </div>
                 </div>
@@ -287,6 +181,15 @@ const UserPage = () => {
           setCreateCharacterInfo(null);
         }}
         characterInfo={createCharacterInfo}
+        onSuccess={handleCharacterSuccess}
+      />
+      {/* Character Preview Modal */}
+      <CharacterPreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        characterId={previewCharacterId}
+        ratio={previewRatio}
+        onEdit={handleEditFromPreview}
       />
     </div>
   );
