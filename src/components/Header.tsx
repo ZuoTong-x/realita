@@ -130,7 +130,7 @@ const Header = () => {
           <CommonButton className="w-14 h-7 flex items-center mr-2">
             <span className="flex items-center text-sm font-normal text-[#3B3D2C]">
               {credits.credits}
-              <IconCredit className="w-3.5 h-3.5 ml-1" />
+              <IconCredit className="w-3.5 h-3.5 ml-1 text-[#2A343D]" />
             </span>
           </CommonButton>
         )}
