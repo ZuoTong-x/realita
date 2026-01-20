@@ -31,7 +31,7 @@ const UserInfoModal: React.FC = () => {
           <div className="w-full flex justify-between items-end gap-2">
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-base font-bold text-[#3B3D2C] truncate">
-                {userInfo?.nickname || userInfo?.username || "User"}
+                {userInfo?.username || "User"}
               </span>
               <span className="text-xs text-gray-400 truncate">
                 {userInfo?.email || ""}
