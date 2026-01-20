@@ -661,6 +661,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         open={voiceModalOpen}
         onClose={() => setVoiceModalOpen(false)}
         voiceList={processedVoiceList}
+        defaultVoiceId={characterInfo?.voice.id}
         onApply={(v) => {
           updateFormData("voice", v);
           setVoiceModalOpen(false);

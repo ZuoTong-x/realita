@@ -17,7 +17,7 @@ import {
   getUserFavoriteVoices,
   addVoiceToUserFavorite,
   removeVoiceFromUserFavorite,
-  getVoiceSampleAsset
+  getVoiceSampleAsset,
 } from "@/api/character";
 
 type VoiceModalProps = {
@@ -25,16 +25,19 @@ type VoiceModalProps = {
   onClose: () => void;
   onApply: (voice: ProcessedVoice | null) => void;
   voiceList: ProcessedVoice[];
+  defaultVoiceId?: string;
 };
 
 const VoiceModal: React.FC<VoiceModalProps> = ({
   open,
   onClose,
   onApply,
-  voiceList
+  voiceList,
+  defaultVoiceId,
 }) => {
   const { message } = App.useApp();
   const [selected, setSelected] = useState<ProcessedVoice | null>(null);
+
   const { i18n, t } = useTranslation();
 
   const [langFilter, setLangFilter] = useState<string>("全部");
@@ -146,7 +149,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     } catch (error) {
       console.error(error);
       message.error(
-        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。",
       );
       setPlayingId(null);
     } finally {
@@ -162,10 +165,11 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       getUserFavoriteVoices().then((res) => {
         if (res.code === 200 && res.data && Array.isArray(res.data.voice_ids)) {
           setFavoriteVoiceIds(res.data.voice_ids);
+          setSelected(voiceList.find((v) => v.id === defaultVoiceId) || null);
         }
       });
     }
-  }, [open]);
+  }, [open, defaultVoiceId, voiceList]);
 
   const handleApply = () => {
     if (!selected) {
@@ -201,12 +205,12 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           tabsList={[
             {
               label: i18n.language === "zh" ? "公共" : "Public",
-              value: "public"
+              value: "public",
             },
             {
               label: i18n.language === "zh" ? "收藏" : "Favorites",
-              value: "favorites"
-            }
+              value: "favorites",
+            },
           ]}
           activeValue={activeTab}
           onChange={(val) => {
@@ -278,10 +282,10 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         className="h-8 px-3 bg-white/90 border border-black/30"
         onClick={onClose}
       >
-        <span className="text-sm text-[#333]">取消</span>
+        <span className="text-sm text-[#333]">{t("common_cancel")}</span>
       </Button>
       <Button className="h-8 px-3 bg-white/90" onClick={handleApply}>
-        <span className="text-sm text-primary">应用</span>
+        <span className="text-sm text-primary">{t("common_apply")}</span>
       </Button>
     </div>
   );
@@ -295,7 +299,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       footer={renderFooter()}
       classNames={{
         container: "w-[40rem] !rounded-2xl",
-        body: "h-[30rem] overflow-y-auto"
+        body: "h-[30rem] overflow-y-auto",
       }}
     >
       <div
@@ -324,7 +328,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                     className={cn(
                       "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
                       "bg-[#000] cursor-pointer group hover:bg-[#333]",
-                      loadingId === v.id && "animate-pulse"
+                      loadingId === v.id && "animate-pulse",
                     )}
                     onClick={(e) => {
                       handleAudioPlay(e, v);
@@ -338,7 +342,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                       <IconPlay
                         className={cn(
                           "w-6 h-6 transition-transform duration-300 text-[#fff]",
-                          currentAudioUrlRef.current && "group-hover:scale-110"
+                          currentAudioUrlRef.current && "group-hover:scale-110",
                         )}
                       />
                     )}
@@ -374,7 +378,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                         "transition-all duration-300 transform",
                         favoriteVoiceIds.includes(v.id)
                           ? "scale-110 animate-heartbeat text-red-500"
-                          : "scale-100 group-hover/fav:scale-125 text-gray-400"
+                          : "scale-100 group-hover/fav:scale-125 text-gray-400",
                       )}
                     >
                       {favoriteVoiceIds.includes(v.id) ? (
