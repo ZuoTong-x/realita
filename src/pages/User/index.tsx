@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 import { Avatar, List, Card } from "antd";
 import CommonButton from "@/components/Common/Button";
@@ -15,7 +15,11 @@ import type { CharacterInfo } from "@/types/Character";
 import LikeTag from "@/components/LikeTag";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
-import { getNonPublicCharacterList, getUserLikedCharacters } from "@/api";
+import {
+  getNonPublicCharacterList,
+  getUserLikedCharacters,
+  getPublicCharacterList,
+} from "@/api";
 import { Ratio } from "@/types/Live";
 
 // Like Tag Component with animation
@@ -29,7 +33,13 @@ const UserPage = () => {
   const navigate = useNavigate();
   const { userInfo, logoutStore } = useUserStore();
   const [userLikedCharacters, setUserLikedCharacters] = useState<string[]>([]);
-  const [characterList, setCharacterList] = useState<CharacterInfo[]>([]);
+
+  const [publicCharacterList, setPublicCharacterList] = useState<
+    CharacterInfo[]
+  >([]);
+  const [nonPublicCharacterList, setNonPublicCharacterList] = useState<
+    CharacterInfo[]
+  >([]);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewCharacterId, setPreviewCharacterId] = useState("");
@@ -72,7 +82,9 @@ const UserPage = () => {
 
   const handleGetCharacterList = async () => {
     const nonPublicCharacters = await getNonPublicCharacterList();
-    setCharacterList(nonPublicCharacters.data);
+    const publicCharacters = await getPublicCharacterList();
+    setPublicCharacterList(publicCharacters.data);
+    setNonPublicCharacterList(nonPublicCharacters.data);
   };
 
   const handleGetUserLikedCharacters = async () => {
@@ -81,7 +93,28 @@ const UserPage = () => {
       setUserLikedCharacters(res.data);
     }
   };
-
+  const handleLikeChange = async () => {
+    handleGetUserLikedCharacters();
+  };
+  const characterList = useMemo(() => {
+    if (activeValue === "history") {
+      return [];
+    }
+    if (activeValue === "likes") {
+      return publicCharacterList.filter((item) =>
+        userLikedCharacters.includes(item.character_id),
+      );
+    }
+    if (activeValue === "assets") {
+      return nonPublicCharacterList;
+    }
+    return [];
+  }, [
+    activeValue,
+    nonPublicCharacterList,
+    publicCharacterList,
+    userLikedCharacters,
+  ]);
   useEffect(() => {
     handleGetCharacterList();
     handleGetUserLikedCharacters();
@@ -124,7 +157,7 @@ const UserPage = () => {
           grid={{ gutter: 16, column: 4 }}
           dataSource={characterList}
           renderItem={(item) => (
-            <List.Item>
+            <List.Item key={item.character_id}>
               <Card className="w-full h-full cursor-pointer user-card-item transition-all duration-300">
                 <div className="w-full flex flex-col gap-2 relative group">
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden">
@@ -152,13 +185,20 @@ const UserPage = () => {
                     </div>
                   </div>
 
-                  <div className="w-full flex items-center justify-between">
-                    <LikeTag
-                      characterId={item.character_id}
-                      likeCount={item.number_of_likes || 0}
-                      isLiked={userLikedCharacters.includes(item.character_id)}
-                    />
-                  </div>
+                  {activeValue === "likes" && (
+                    <div className="w-full flex items-center justify-between">
+                      <LikeTag
+                        characterId={item.character_id}
+                        likeCount={item.number_of_likes || 0}
+                        isLiked={userLikedCharacters.includes(
+                          item.character_id,
+                        )}
+                        onLikeChange={() => {
+                          handleLikeChange();
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <div className="w-full flex flex-col gap-1">
                     <div className="text-base font-semibold text-[#32333D] line-clamp-1">

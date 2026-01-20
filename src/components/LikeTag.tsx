@@ -15,8 +15,8 @@ export const LikeTag = ({
     iconPosition: "left",
     showCount: true,
     showIcon: true,
-    showBorder: true
-  }
+    showBorder: true,
+  },
 }: {
   characterId: string;
   likeCount: number;

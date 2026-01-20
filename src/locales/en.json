@@ -94,5 +94,5 @@
   "queue_joining": "Joining...",
   "queue_not_in_queue": "You are not in the queue, please rejoin",
   "queue_users": "users",
-  "character_generated_success": "Character Generated Successfully"
+  "character_generated_success": "Character is ready"
 }

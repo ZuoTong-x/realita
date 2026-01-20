@@ -94,5 +94,5 @@
   "queue_joining": "加入中...",
   "queue_not_in_queue": "您不在队列中,请重新加入",
   "queue_users": "人",
-  "character_generated_success": "角色生成成功"
+  "character_generated_success": "角色已就绪"
 }
