@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Avatar, List, Card, Tag } from "antd";
+import { Avatar, List, Card } from "antd";
 import CommonButton from "@/components/Common/Button";
 import RadioTabs from "@/components/RadioTabs";
 import IconUser from "@/assets/svg/IconUser.svg?react";

@@ -8,15 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@ffmpeg/core':
-        specifier: ^0.12.10
-        version: 0.12.10
-      '@ffmpeg/ffmpeg':
-        specifier: ^0.12.15
-        version: 0.12.15
-      '@ffmpeg/util':
-        specifier: ^0.12.2
-        version: 0.12.2
       '@react-oauth/google':
         specifier: ^0.12.2
         version: 0.12.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -62,15 +53,9 @@ importers:
       react-router-dom:
         specifier: ^7.8.2
         version: 7.9.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      swiper:
-        specifier: ^11.2.10
-        version: 11.2.10
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
-      wavesurfer.js:
-        specifier: ^7.10.3
-        version: 7.11.1
       zustand:
         specifier: ^5.0.8
         version: 5.0.8(@types/react@19.2.2)(react@18.3.1)
@@ -459,22 +444,6 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@ffmpeg/core@0.12.10':
-    resolution: {integrity: sha512-dzNplnn2Nxle2c2i2rrDhqcB19q9cglCkWnoMTDN9Q9l3PvdjZWd1HfSPjCNWc/p8Q3CT+Es9fWOR0UhAeYQZA==}
-    engines: {node: '>=16.x'}
-
-  '@ffmpeg/ffmpeg@0.12.15':
-    resolution: {integrity: sha512-1C8Obr4GsN3xw+/1Ww6PFM84wSQAGsdoTuTWPOj2OizsRDLT4CXTaVjPhkw6ARyDus1B9X/L2LiXHqYYsGnRFw==}
-    engines: {node: '>=18.x'}
-
-  '@ffmpeg/types@0.12.4':
-    resolution: {integrity: sha512-k9vJQNBGTxE5AhYDtOYR5rO5fKsspbg51gbcwtbkw2lCdoIILzklulcjJfIDwrtn7XhDeF2M+THwJ2FGrLeV6A==}
-    engines: {node: '>=16.x'}
-
-  '@ffmpeg/util@0.12.2':
-    resolution: {integrity: sha512-ouyoW+4JB7WxjeZ2y6KpRvB+dLp7Cp4ro8z0HIVpZVCM7AwFlHa0c4R8Y/a4M3wMqATpYKhC7lSFHQ0T11MEDw==}
-    engines: {node: '>=18.x'}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2421,10 +2390,6 @@ packages:
   svg-parser@2.0.4:
     resolution: {integrity: sha512-e4hG1hRwoOdRb37cIMSgzNsxyzKfayW6VOflrwvR+/bzrkyxY/31WkbgnQpgtrNp1SdpJvpUAGTa/ZoiPNDuRQ==}
 
-  swiper@11.2.10:
-    resolution: {integrity: sha512-RMeVUUjTQH+6N3ckimK93oxz6Sn5la4aDlgPzB+rBrG/smPdCTicXyhxa+woIpopz+jewEloiEE3lKo1h9w2YQ==}
-    engines: {node: '>= 4.7.0'}
-
   tailwind-merge@3.4.0:
     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}
 
@@ -2563,9 +2528,6 @@ packages:
   void-elements@3.1.0:
     resolution: {integrity: sha1-YU9/v42AHwu18GYfWy9XhXUOTwk=}
     engines: {node: '>=0.10.0'}
-
-  wavesurfer.js@7.11.1:
-    resolution: {integrity: sha512-8Q+wwItpjJAlhQ7crQLtKwgfbqqczm5/wx+76K4PptP+MBAjB0OA78+A9OuLnULz/8GpAQ+fKM6s81DonEO0Sg==}
 
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
@@ -2916,16 +2878,6 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
-
-  '@ffmpeg/core@0.12.10': {}
-
-  '@ffmpeg/ffmpeg@0.12.15':
-    dependencies:
-      '@ffmpeg/types': 0.12.4
-
-  '@ffmpeg/types@0.12.4': {}
-
-  '@ffmpeg/util@0.12.2': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -5176,8 +5128,6 @@ snapshots:
 
   svg-parser@2.0.4: {}
 
-  swiper@11.2.10: {}
-
   tailwind-merge@3.4.0: {}
 
   tailwindcss@3.4.18:
@@ -5331,8 +5281,6 @@ snapshots:
       jiti: 1.21.7
 
   void-elements@3.1.0: {}
-
-  wavesurfer.js@7.11.1: {}
 
   which-boxed-primitive@1.1.1:
     dependencies:

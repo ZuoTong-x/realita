@@ -172,7 +172,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     } else {
       cancel()
     }
-  }, [open, init]);
+  }, [open, init, cancel]);
 
 
   return (

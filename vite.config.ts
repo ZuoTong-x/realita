@@ -31,7 +31,7 @@ export default defineConfig(() => {
       },
     },
     optimizeDeps: {
-      exclude: ["@ffmpeg/ffmpeg"], // 排除 @ffmpeg/ffmpeg 以防止预打包
+      // exclude: ["@ffmpeg/ffmpeg"], // 排除 @ffmpeg/ffmpeg 以防止预打包
     },
   };
 });
