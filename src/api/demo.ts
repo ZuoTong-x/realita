@@ -4,7 +4,7 @@ import type {
   VoicesResponse,
   ServiceStatusResponse,
   StartServicePayload,
-  StartServiceResponse,
+  StartServiceResponse
 } from "@/types/Live";
 
 // 获取tts 列表 /lightx2v/voices
@@ -38,7 +38,7 @@ export const stopService = async (
   sessionId: string
 ): Promise<ServiceStatusResponse> => {
   const response = await request.post<ServiceStatusResponse>("/service/stop", {
-    sessionId,
+    sessionId
   });
   return response.data;
 };

@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build --mode development",
     "build-prod": "tsc -b && vite build --mode production",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint:fix": "eslint src/ --fix --ext .ts,.tsx,.js,.jsx",
+    "format": "pnpm run lint:fix && prettier --write --ignore-unknown \"**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
+    "format:check": "prettier --check --ignore-unknown \"**/*.{ts,tsx,js,jsx,json,css,scss,md}\""
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
@@ -38,6 +41,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

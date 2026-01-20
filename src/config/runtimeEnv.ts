@@ -18,6 +18,6 @@ export function getRuntimeEnv(): RuntimeEnv {
   return {
     VITE_API_BASE: win.VITE_API_BASE ?? import.meta.env.VITE_API_BASE,
     VITE_GOOGLE_CLIENT_ID:
-      win.VITE_GOOGLE_CLIENT_ID ?? import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      win.VITE_GOOGLE_CLIENT_ID ?? import.meta.env.VITE_GOOGLE_CLIENT_ID
   };
 }

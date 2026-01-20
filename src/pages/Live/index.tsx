@@ -35,7 +35,7 @@ const LivePage = () => {
   const [uiVisible, setUiVisible] = useState<boolean>(true);
   // 双击/双指触控检测
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(
-    null
+    null,
   );
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
@@ -58,7 +58,7 @@ const LivePage = () => {
   // 页面不再自动发起通话；仅在参数缺失时提示
   useEffect(() => {
     if (!whipUrl || !whepUrl || !lightx2vTaskId || !stream) {
-      message.error(i18n.t("live.lack_of_key_data"));
+      message.error(i18n.t("live_lack_of_key_data"));
     }
   }, [whipUrl, whepUrl, lightx2vTaskId, stream, i18n, message]);
 
@@ -189,10 +189,10 @@ const LivePage = () => {
           />
           {liveStatus !== "connected" && (
             <div className="absolute inset-0 flex items-center justify-center font-bold text-2xl text-white/80">
-              {liveStatus === "idle" && t("live.idle")}
-              {liveStatus === "connecting" && t("live.connecting")}
+              {liveStatus === "idle" && t("live_idle")}
+              {liveStatus === "connecting" && t("live_connecting")}
               {/* {liveStatus === "connected" && t("live.calling")} */}
-              {liveStatus === "error" && t("live.call_failed")}
+              {liveStatus === "error" && t("live_call_failed")}
             </div>
           )}
         </div>
@@ -282,7 +282,7 @@ const LivePage = () => {
               <div className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer select-none bg-black">
                 <IconCamera className="w-10 h-10 text-white/80" />
                 <div className="text-white/80 text-sm">
-                  {t("common.open_camera")}
+                  {t("common_open_camera")}
                 </div>
               </div>
             )}
@@ -293,8 +293,8 @@ const LivePage = () => {
       <Modal
         open={permModalOpen}
         centered
-        title={t("live.permission_title")}
-        okText={t("common.confirm")}
+        title={t("live_permission_title")}
+        okText={t("common_confirm")}
         cancelButtonProps={{ style: { display: "none" } }}
         maskClosable={false}
         onOk={async () => {
@@ -309,12 +309,12 @@ const LivePage = () => {
             await startLive();
             setPermModalOpen(false);
           } catch (e) {
-            message.error(t("live.permission_denied"));
+            message.error(t("live_permission_denied"));
           }
         }}
         onCancel={() => setPermModalOpen(false)}
       >
-        <div className="text-[#3B3D2C]">{t("live.permission_desc")}</div>
+        <div className="text-[#3B3D2C]">{t("live_permission_desc")}</div>
       </Modal>
     </div>
   );

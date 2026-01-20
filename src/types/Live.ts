@@ -1,7 +1,7 @@
 export enum Ratio {
   LANDSCAPE = "landscape",
   PORTRAIT = "portrait",
-  SQUARE = "square",
+  SQUARE = "square"
 }
 export interface RatioItem {
   label: string;
@@ -13,7 +13,7 @@ export interface RatioItem {
 export enum CallingStatus {
   PENDING = "pending",
   CALLING = "calling",
-  ENDED = "ended",
+  ENDED = "ended"
 }
 
 export interface VoicesResponse {

@@ -12,7 +12,7 @@ type CharacterSliderProps = {
 const CharacterSlider = ({
   characterList,
   currentCharacter,
-  changeCharacter,
+  changeCharacter
 }: CharacterSliderProps) => {
   const DISPLAY_COUNT = 13; // 最大展示数量
 
@@ -36,7 +36,7 @@ const CharacterSlider = ({
       const idx = (centerIdx + i + len) % len;
       res.push({
         item: characterList[idx],
-        order: i + half, // 这里的 order 是相对于 visibleList 的
+        order: i + half // 这里的 order 是相对于 visibleList 的
       });
     }
 
@@ -78,16 +78,17 @@ const CharacterSlider = ({
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
           {visibleList.map(({ item: character, order }) => {
             const isCenter = order === currentOrderIdx;
+            const popoverContent = (
+              <img
+                src={character.image.url}
+                alt={character.character_name}
+                className="w-[200px] h-[264px] object-cover rounded-2xl overflow-hidden"
+              />
+            );
             return (
               <Popover
                 key={character.character_id}
-                content={
-                  <img
-                    src={character.image.url}
-                    alt={character.character_name}
-                    className="w-[200px] h-[264px] object-cover rounded-2xl overflow-hidden"
-                  />
-                }
+                content={popoverContent}
                 placement="left"
                 align={{ offset: [-15, 0] }}
                 arrow={false}
@@ -103,7 +104,7 @@ const CharacterSlider = ({
                     order: order,
                     transition:
                       "all 300ms cubic-bezier(0.4, 0, 0.2, 1), order 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-                    willChange: "height, width, opacity, transform, order",
+                    willChange: "height, width, opacity, transform, order"
                   }}
                   onClick={() => {
                     const targetIdx = characterList.findIndex(

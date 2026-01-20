@@ -76,11 +76,9 @@ export interface TokenInfo {
   token_type: string;
 }
 
-
 export interface UserCredits {
   /**
    * 用户当前的积分余额数量
    */
   credits: number;
-
 }

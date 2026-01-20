@@ -5,7 +5,6 @@ import { cn } from "@/utils/style_utils";
 import Cropper, { type ReactCropperElement } from "react-cropper";
 import "./cropper.css";
 
-// import CommonButton from "@/components/Common/Button";
 import DropdownMenu from "@/components/DropdownMenu";
 import VoiceModal from "./VoiceModal";
 import RadioTabs from "@/components/RadioTabs";
@@ -17,7 +16,6 @@ import IconModelBlack from "@/assets/svg/IconModelBlack.svg?react";
 import IconModelGray from "@/assets/svg/IconModelGray.svg?react";
 import IconArrowDownBlack from "@/assets/svg/IconArrowDownBlack.svg?react";
 import IconStar from "@/assets/svg/IconStar.svg?react";
-// import IconRefresh from "@/assets/svg/IconRefresh.svg?react";
 import IconAdd from "@/assets/svg/IconAdd.svg?react";
 import IconWave from "@/assets/svg/IconWave.svg?react";
 import IconPause from "@/assets/svg/IconPause.svg?react";
@@ -26,7 +24,7 @@ import IconRadio169 from "@/assets/svg/IconRadio_16_9.svg?react";
 import IconRadio11 from "@/assets/svg/IconRadio_1_1.svg?react";
 
 import { Ratio } from "@/types/Live";
-import { getVoicesOptions, getModelsOptions } from "@/api/characterRequest";
+import { getVoicesOptions, getModelsOptions } from "@/api";
 
 import { useVoiceProcessing } from "@/hooks/useVoiceProcessing";
 import { DEFAULT_VIDEO_PROMPT } from "@/constants";
@@ -37,7 +35,6 @@ import type {
   CharacterInfo,
   LipSyncModelInfo,
   CreateCharacterRequest,
-
 } from "@/types/Character";
 import { LipSyncMotionStyle } from "@/types/Character";
 import type { EditCharacterRequest } from "@/types/Character";
@@ -45,8 +42,9 @@ import {
   getVoiceSampleAsset,
   createCharacter as createCharacterApi,
   editCharacter,
-} from "@/api/characterRequest";
-import { uploadAssetFile } from "@/api/common";
+  uploadAssetFile,
+  duplicateCharacter,
+} from "@/api";
 import type { RatioItem } from "@/types/Live";
 
 type CharacterCreateProps = {
@@ -57,8 +55,6 @@ type CharacterCreateProps = {
 };
 
 const DEFAULT_MODEL_NAME = "SekoTalk";
-
-
 
 const CharacterCreate: React.FC<CharacterCreateProps> = ({
   open,
@@ -120,25 +116,23 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   const updateFormData = useCallback(
     <K extends keyof CharacterFormData>(
       key: K,
-      value: CharacterFormData[K]
+      value: CharacterFormData[K],
     ) => {
       setFormData((prev) => {
         const newData = { ...prev, [key]: value };
         return newData;
       });
     },
-    []
+    [],
   );
-
 
   const updateFormDataBatch = useCallback(
     (updates: Partial<CharacterFormData>) => {
       setFormData((prev) => ({ ...prev, ...updates }));
     },
-    []
+    [setFormData],
   );
   // --- Custom Hooks ---
-
 
   const { processedVoiceList } = useVoiceProcessing(voiceList);
 
@@ -147,7 +141,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   };
 
   const handleImgFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -163,16 +157,14 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   };
 
   const createCharacter = async () => {
-
     if (type === "create") {
       if (imgFileRef.current === null) {
-        message.error(t("home.please_upload_image"));
+        message.error(t("home_please_upload_image"));
         return;
       }
-
     } else {
       if (imgFileRef.current === null && !formData.imageUrl) {
-        message.error(t("home.please_upload_image"));
+        message.error(t("home_please_upload_image"));
         return;
       }
     }
@@ -209,7 +201,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       const mime = imgFileRef.current?.type || "image/png";
       const ext = mime.split("/")[1] || "png";
       const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), mime)
+        canvas.toBlob((b) => resolve(b), mime),
       );
       if (blob) {
         const file = new File([blob], `cropped-image.${ext}`, { type: mime });
@@ -218,21 +210,36 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       }
     }
     if (type === "edit") {
+      if (defaultData?.is_public) {
+        const copyRes = await duplicateCharacter(defaultData.character_id);
+        if (copyRes.code === 200) {
+          characterIdRef.current = copyRes.data.character_id;
+        } else {
+          message.error(t("home_edit_character_failed"));
+          return;
+        }
+      }
       const params: EditCharacterRequest = {
         character_id: characterIdRef.current,
       };
-      if (imgFileRef.current !== null && payload.image_id) params.image_id = payload.image_id;
-      if (formData.name !== defaultData?.character_name) params.name = formData.name;
-      if (formData.llm_prompt !== defaultData?.llm_prompt) params.llm_prompt = formData.llm_prompt;
-      if (formData.video_prompt !== defaultData?.video_prompt) params.video_prompt = formData.video_prompt;
-      if (formData.voice?.id !== defaultData?.voice.id) params.voice_id = formData.voice?.id;
-      if (formData.model?.id !== defaultData?.video_model_id) params.video_model_id = formData.model?.id;
+      if (imgFileRef.current !== null && payload.image_id)
+        params.image_id = payload.image_id;
+      if (formData.name !== defaultData?.character_name)
+        params.name = formData.name;
+      if (formData.llm_prompt !== defaultData?.llm_prompt)
+        params.llm_prompt = formData.llm_prompt;
+      if (formData.video_prompt !== defaultData?.video_prompt)
+        params.video_prompt = formData.video_prompt;
+      if (formData.voice?.id !== defaultData?.voice.id)
+        params.voice_id = formData.voice?.id;
+      if (formData.model?.id !== defaultData?.video_model_id)
+        params.video_model_id = formData.model?.id;
       const res = await editCharacter(params);
       if (res.code === 200) {
         onClose();
         onSuccess?.(characterIdRef.current, formData.ratio);
       } else {
-        message.error(t("home.edit_character_failed"));
+        message.error(t("home_edit_character_failed"));
       }
     } else {
       const res = await createCharacterApi(payload);
@@ -241,7 +248,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         characterIdRef.current = res.data.character_id;
         onSuccess?.(res.data.character_id, formData.ratio);
       } else {
-        message.error(t("home.create_character_failed"));
+        message.error(t("home_create_character_failed"));
       }
     }
   };
@@ -279,6 +286,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       });
       characterIdRef.current = characterInfo.character_id;
       setDefaultData(characterInfo);
+
       setType("edit");
     } else {
       // 重置为默认值
@@ -344,10 +352,57 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     } catch (error) {
       console.error(error);
       message.error(
-        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。",
       );
       setAudioStatus("idle");
     }
+  };
+  const renderFooter = () => {
+    return (
+      <div className="w-full flex items-center justify-between">
+        <DropdownMenu<ExtendedLipSyncModelInfo>
+          list={lipSyncModels}
+          value={formData.model}
+          onChange={(model) => updateFormData("model", model)}
+          formatLabel={formatModelName}
+          getKey={(_, index) => index}
+          isSelected={(item, val) => val?.motion_style === item.motion_style}
+          defaultLabel={DEFAULT_MODEL_NAME}
+          iconActive={<IconModelBlack className="w-4 h-4" />}
+          iconInactive={<IconModelGray className="w-4 h-4" />}
+          iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
+          renderSelectedIcon={(_, isSelected) =>
+            isSelected ? (
+              <IconChosenBlack className="w-4 h-4 ml-3" />
+            ) : (
+              <div className="w-4 h-4 ml-3" />
+            )
+          }
+          disabled={lipSyncModels.length === 0}
+        />
+        <button
+          className="h-8 px-[14px] flex items-center bg-[#F6F3F3] rounded-full cursor-pointer"
+          onClick={() => createCharacter()}
+        >
+          <span className="text-sm font-normal text-[#3B3D2C]">
+            {type === "create"
+              ? t("home_create_character")
+              : t("home_edit_character")}
+          </span>
+          <IconStar className="w-4 h-4 mx-1" />
+        </button>
+      </div>
+    );
+  };
+  const renderTitle = () => {
+    return (
+      <RadioTabs
+        disable={imgFileRef.current === null}
+        tabsList={tabsList}
+        activeValue={formData.ratio}
+        onChange={(value) => updateFormData("ratio", value as Ratio)}
+      />
+    );
   };
   // --- Effects ---
 
@@ -371,7 +426,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   useEffect(() => {
     if (characterInfo && processedVoiceList.length > 0) {
       const target = processedVoiceList.find(
-        (v) => v.id === characterInfo.voice.id
+        (v) => v.id === characterInfo.voice.id,
       );
       if (target) updateFormData("voice", target);
     }
@@ -381,7 +436,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   useEffect(() => {
     if (characterInfo && lipSyncModels.length > 0) {
       const targetModel = lipSyncModels.find(
-        (m) => m.id === characterInfo.video_model_id
+        (m) => m.id === characterInfo.video_model_id,
       );
       if (targetModel) {
         updateFormData("model", targetModel);
@@ -414,50 +469,9 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       open={open}
       onCancel={onClose}
       centered
-      title={
-        <RadioTabs
-          disable={imgFileRef.current === null}
-          tabsList={tabsList}
-          activeValue={formData.ratio}
-          onChange={(value) => updateFormData("ratio", value as Ratio)}
-        />
-      }
+      title={renderTitle()}
       maskClosable={false}
-      footer={
-        <div className="w-full flex items-center justify-between">
-          <DropdownMenu<ExtendedLipSyncModelInfo>
-            list={lipSyncModels}
-            value={formData.model}
-            onChange={(model) => updateFormData("model", model)}
-            formatLabel={formatModelName}
-            getKey={(_, index) => index}
-            isSelected={(item, val) => val?.motion_style === item.motion_style}
-            defaultLabel={DEFAULT_MODEL_NAME}
-            iconActive={<IconModelBlack className="w-4 h-4" />}
-            iconInactive={<IconModelGray className="w-4 h-4" />}
-            iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
-            renderSelectedIcon={(_, isSelected) =>
-              isSelected ? (
-                <IconChosenBlack className="w-4 h-4 ml-3" />
-              ) : (
-                <div className="w-4 h-4 ml-3" />
-              )
-            }
-            disabled={lipSyncModels.length === 0}
-          />
-          <button
-            className="h-8 px-[14px] flex items-center bg-[#F6F3F3] rounded-full cursor-pointer"
-            onClick={() =>
-              createCharacter()
-            }
-          >
-            <span className="text-sm font-normal text-[#3B3D2C]">
-              {type === "create" ? t("home.create_character") : t("home.edit_character")}
-            </span>
-            <IconStar className="w-4 h-4 mx-1" />
-          </button>
-        </div>
-      }
+      footer={renderFooter()}
       classNames={{
         container: "w-[32.25rem] h-[42rem] !rounded-2xl",
         body: "!pt-4 !pr-4 max-h-[35rem] overflow-y-auto",
@@ -469,50 +483,56 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           className="w-full h-[18rem] flex items-center justify-center border border-black/30 rounded-2xl relative"
           onClick={() => !formData.imageUrl && imgInputRef.current?.click()}
         >
-          {formData.imageUrl ? imgFileRef.current === null ? (
-            <div className="relative w-full h-full flex items-center justify-center">
-              <img src={formData.imageUrl} alt="character image" className="w-full h-full object-contain " />
-            </div>
-          ) : (
-            <div className="relative w-full h-full flex items-center justify-center">
-              <Cropper
-                className="w-full h-full"
-                crossOrigin="anonymous"
-                ref={cropperRef}
-                src={formData.imageUrl}
-                dragMode="move"
-                cropBoxMovable={true} // 允许移动裁剪框
-                cropBoxResizable={true} // 允许调整裁剪框大小
-                movable={false} // 禁止移动图片
-                zoomable={false} // 禁止缩放（放大/缩小）
-                scalable={false} // 禁止翻转
-                viewMode={1} // 限制裁剪框在画布内
-                guides={false}
-                center={false}
-                highlight={false}
-                background={false}
-                checkOrientation={false} // https://github.com/fengyuanchen/cropperjs/issues/671
-                autoCropArea={1}
-                aspectRatio={
-                  formData.ratio === Ratio.LANDSCAPE
-                    ? 16 / 9
-                    : formData.ratio === Ratio.PORTRAIT
-                      ? 9 / 16
-                      : 1
-                }
-                style={{
-                  width: "100%",
-                  height: "18rem",
-                  background: "#333",
-                  borderRadius: "16px",
-                }}
-              />
-            </div>
+          {formData.imageUrl ? (
+            imgFileRef.current === null ? (
+              <div className="relative w-full h-full flex items-center justify-center">
+                <img
+                  src={formData.imageUrl}
+                  alt="character image"
+                  className="w-full h-full object-contain "
+                />
+              </div>
+            ) : (
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Cropper
+                  className="w-full h-full"
+                  crossOrigin="anonymous"
+                  ref={cropperRef}
+                  src={formData.imageUrl}
+                  dragMode="move"
+                  cropBoxMovable={true} // 允许移动裁剪框
+                  cropBoxResizable={true} // 允许调整裁剪框大小
+                  movable={false} // 禁止移动图片
+                  zoomable={false} // 禁止缩放（放大/缩小）
+                  scalable={false} // 禁止翻转
+                  viewMode={1} // 限制裁剪框在画布内
+                  guides={false}
+                  center={false}
+                  highlight={false}
+                  background={false}
+                  checkOrientation={false} // https://github.com/fengyuanchen/cropperjs/issues/671
+                  autoCropArea={1}
+                  aspectRatio={
+                    formData.ratio === Ratio.LANDSCAPE
+                      ? 16 / 9
+                      : formData.ratio === Ratio.PORTRAIT
+                        ? 9 / 16
+                        : 1
+                  }
+                  style={{
+                    width: "100%",
+                    height: "18rem",
+                    background: "#333",
+                    borderRadius: "16px",
+                  }}
+                />
+              </div>
+            )
           ) : (
             <div className="w-[24rem] h-[18rem] flex flex-col justify-center items-center cursor-pointer">
               <IconRoleAdd className="w-[56px] h-[56px] mb-6" />
               <span className="text-base font-medium text-[#3B3D2C80]">
-                {t("home.upload_character_image")}
+                {t("home_upload_character_image")}
               </span>
             </div>
           )}
@@ -534,7 +554,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           value={formData.name}
           className="w-full h-10  border-black/30 rounded-xl p-2 hover:border-primary focus-within:border-primary"
           onChange={(e) => updateFormData("name", e.target.value)}
-          placeholder={t("home.enter_character_name")}
+          placeholder={t("home_enter_character_name")}
         />
 
         {/*  llm_prompt */}
@@ -544,7 +564,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             onChange={(e) => updateFormData("llm_prompt", e.target.value)}
             rows={4}
             className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
-            placeholder={t("home.llm_prompt_placeholder")}
+            placeholder={t("home_llm_prompt_placeholder")}
           />
         </div>
 
@@ -555,7 +575,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
             onChange={(e) => updateFormData("video_prompt", e.target.value)}
             rows={4}
             className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
-            placeholder={t("home.video_prompt_placeholder")}
+            placeholder={t("home_video_prompt_placeholder")}
           />
 
           <style>{`
@@ -588,12 +608,12 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                 )}
               </button>
               <Input
-                placeholder={t("home.please_select_voice")}
+                placeholder={t("home_please_select_voice")}
                 className="w-[calc(100%-20px)] h-9 px-[45px]  bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer"
                 value={
                   formData.voice
                     ? formData.voice.friendly_name
-                    : t("home.please_select_voice")
+                    : t("home_please_select_voice")
                 }
                 readOnly
                 onClick={() => setVoiceModalOpen(true)}
@@ -604,7 +624,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                   className={cn(
                     "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300 absolute right-2 shadow-md",
                     "bg-[#fff] cursor-pointer group ",
-                    audioStatus === "loading" && "animate-pulse"
+                    audioStatus === "loading" && "animate-pulse",
                   )}
                   onClick={(e) => {
                     handleAudioPlay(e);
@@ -618,7 +638,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                     <IconPlay
                       className={cn(
                         "w-6 h-6 transition-transform duration-300 text-[#000]",
-                        currentAudioUrlRef.current && "group-hover:scale-110"
+                        currentAudioUrlRef.current && "group-hover:scale-110",
                       )}
                     />
                   )}

@@ -17,8 +17,8 @@ import {
   getUserFavoriteVoices,
   addVoiceToUserFavorite,
   removeVoiceFromUserFavorite,
-  getVoiceSampleAsset,
-} from "@/api/characterRequest";
+  getVoiceSampleAsset
+} from "@/api/character";
 
 type VoiceModalProps = {
   open: boolean;
@@ -31,7 +31,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
   open,
   onClose,
   onApply,
-  voiceList,
+  voiceList
 }) => {
   const { message } = App.useApp();
   const [selected, setSelected] = useState<ProcessedVoice | null>(null);
@@ -167,6 +167,15 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     }
   }, [open]);
 
+  const handleApply = () => {
+    if (!selected) {
+      message.error(t("common_please_select_voice"));
+      return;
+    }
+    onApply(selected);
+    onClose();
+  };
+
   const handleFavorite = async (ev: React.MouseEvent, voiceId: string) => {
     ev.stopPropagation();
     if (favoriteVoiceIds.includes(voiceId)) {
@@ -190,8 +199,14 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       <div className="w-auto">
         <RadioTabs
           tabsList={[
-            { label: i18n.language === "zh" ? "公共" : "Public", value: "public" },
-            { label: i18n.language === "zh" ? "收藏" : "Favorites", value: "favorites" },
+            {
+              label: i18n.language === "zh" ? "公共" : "Public",
+              value: "public"
+            },
+            {
+              label: i18n.language === "zh" ? "收藏" : "Favorites",
+              value: "favorites"
+            }
           ]}
           activeValue={activeTab}
           onChange={(val) => {
@@ -215,7 +230,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           }
           getKey={(l) => l.key}
           isSelected={(l, v) => l.key === v?.key}
-          defaultLabel={t("common.language")}
+          defaultLabel={t("common_language")}
           iconActive={<IconModelBlack className="w-4 h-4" />}
           iconInactive={<IconModelGray className="w-4 h-4" />}
           iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
@@ -257,7 +272,19 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       </div>
     </div>
   );
-
+  const renderFooter = () => (
+    <div className="w-full flex items-center justify-end gap-3">
+      <Button
+        className="h-8 px-3 bg-white/90 border border-black/30"
+        onClick={onClose}
+      >
+        <span className="text-sm text-[#333]">取消</span>
+      </Button>
+      <Button className="h-8 px-3 bg-white/90" onClick={handleApply}>
+        <span className="text-sm text-primary">应用</span>
+      </Button>
+    </div>
+  );
   return (
     <Modal
       open={open}
@@ -265,25 +292,10 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       title={renderTitle()}
       centered
       width={640}
-      footer={
-        <div className="w-full flex items-center justify-end gap-3">
-          <Button
-            className="h-8 px-3 bg-white/90 border border-black/30"
-            onClick={onClose}
-          >
-            <span className="text-sm text-[#333]">取消</span>
-          </Button>
-          <Button
-            className="h-8 px-3 bg-white/90"
-            onClick={() => onApply(selected)}
-          >
-            <span className="text-sm text-primary">应用</span>
-          </Button>
-        </div>
-      }
+      footer={renderFooter()}
       classNames={{
         container: "w-[40rem] !rounded-2xl",
-        body: "h-[30rem] overflow-y-auto",
+        body: "h-[30rem] overflow-y-auto"
       }}
     >
       <div
@@ -379,7 +391,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t("common.no_data")}
+            description={t("common_no_data")}
           />
         )}
       </div>

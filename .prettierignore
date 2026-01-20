@@ -1,0 +1,22 @@
+# .prettierignore 示例（格式与 .gitignore 一致）
+# 依赖目录
+node_modules/
+# 打包产物
+dist/
+build/
+dist-ssr/
+# Git 目录
+.git/
+# 锁文件
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+# 配置文件（按需调整，若需格式化 .js 配置文件可删除对应行）
+*.config.js
+*.config.ts
+# 非前端源码文件
+*.sql
+*.sh
+*.md（可选，若需格式化 Markdown 可删除）
+nginx.conf
+dockerfile

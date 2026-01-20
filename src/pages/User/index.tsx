@@ -15,7 +15,7 @@ import type { CharacterInfo } from "@/types/Character";
 import LikeTag from "@/components/LikeTag";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
-import { getCharacterList, getUserLikedCharacters } from "@/api";
+import { getNonPublicCharacterList, getUserLikedCharacters } from "@/api";
 import { Ratio } from "@/types/Live";
 
 // Like Tag Component with animation
@@ -30,20 +30,19 @@ const UserPage = () => {
   const { userInfo, logoutStore } = useUserStore();
   const [userLikedCharacters, setUserLikedCharacters] = useState<string[]>([]);
   const [characterList, setCharacterList] = useState<CharacterInfo[]>([]);
-  
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewCharacterId, setPreviewCharacterId] = useState("");
   const [previewRatio, setPreviewRatio] = useState<Ratio>(Ratio.PORTRAIT);
   const tabsList = [
-    { label: t("user.history"), value: "history", icon: <IconHistory /> },
-    { label: t("user.likes"), value: "likes", icon: <IconLike /> },
+    { label: t("user_history"), value: "history", icon: <IconHistory /> },
+    { label: t("user_likes"), value: "likes", icon: <IconLike /> },
     {
-      label: t("user.assets"),
+      label: t("user_assets"),
       value: "assets",
       icon: <IconUser className="w-5 h-5" />,
     },
   ];
-
 
   // 从列表直接打开预览
   const handleChat = (_character: CharacterInfo) => {
@@ -72,10 +71,8 @@ const UserPage = () => {
   };
 
   const handleGetCharacterList = async () => {
-    const res = await getCharacterList();
-    if (res.code === 200) {
-      setCharacterList(res.data);
-    }
+    const nonPublicCharacters = await getNonPublicCharacterList();
+    setCharacterList(nonPublicCharacters.data);
   };
 
   const handleGetUserLikedCharacters = async () => {
@@ -106,7 +103,7 @@ const UserPage = () => {
           <CommonButton size="large" className=" h-10 " onClick={handleLogOut}>
             <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
               <IconLogout className="w-5 h-5" />
-              {t("login.login_out")}
+              {t("login_login_out")}
             </span>
           </CommonButton>
         </div>
@@ -133,30 +130,34 @@ const UserPage = () => {
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden">
                     <img
                       src={item.image.url}
-                      alt={item.character_name||''}
+                      alt={item.character_name || ""}
                       className="w-full h-full object-cover"
                     />
                     {/* Chat button overlay */}
                     <div className="absolute inset-0 flex items-end justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300 opacity-0 group-hover:opacity-100">
                       <CommonButton
-                          size="large"
-                          className="h-10 px-0 hover:scale-110 transition-transform duration-300 mb-4"
-                          borderRadiusPx={54}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleChat(item);
-                          }}
-                        >
-                          <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
-                            {t("common.chat")}
-                            <IconChat className="w-6 h-4" />
-                          </span>
-                        </CommonButton>
+                        size="large"
+                        className="h-10 px-0 hover:scale-110 transition-transform duration-300 mb-4"
+                        borderRadiusPx={54}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleChat(item);
+                        }}
+                      >
+                        <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
+                          {t("common_chat")}
+                          <IconChat className="w-6 h-4" />
+                        </span>
+                      </CommonButton>
                     </div>
                   </div>
 
                   <div className="w-full flex items-center justify-between">
-                    <LikeTag characterId={item.character_id} likeCount={item.number_of_likes || 0} isLiked={userLikedCharacters.includes(item.character_id)}  />
+                    <LikeTag
+                      characterId={item.character_id}
+                      likeCount={item.number_of_likes || 0}
+                      isLiked={userLikedCharacters.includes(item.character_id)}
+                    />
                   </div>
 
                   <div className="w-full flex flex-col gap-1">

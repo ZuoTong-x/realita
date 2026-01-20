@@ -9,7 +9,7 @@ export function useWebRTCWhipWhep({
   preview,
   audioOnly = false,
   remoteVideoRef, // 新增：用于播放远程流的视频元素 ref
-  localStream, // 新增：直接传入本地流（优先级最高）
+  localStream // 新增：直接传入本地流（优先级最高）
 }: {
   whipUrl?: string | null;
   whepUrl?: string | null;
@@ -94,7 +94,7 @@ export function useWebRTCWhipWhep({
     async (url: string) => {
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-        bundlePolicy: "max-bundle",
+        bundlePolicy: "max-bundle"
       });
       whepPcRef.current = pc;
 
@@ -127,9 +127,9 @@ export function useWebRTCWhipWhep({
         method: "POST",
         headers: {
           "Content-Type": "application/sdp",
-          Accept: "application/sdp",
+          Accept: "application/sdp"
         },
-        body: offer.sdp!,
+        body: offer.sdp!
       });
 
       if (!resp.ok) throw new Error("WHEP 请求失败: " + resp.status);
@@ -137,7 +137,7 @@ export function useWebRTCWhipWhep({
       const answerSdp = await resp.text();
       await pc.setRemoteDescription({
         type: "answer",
-        sdp: answerSdp,
+        sdp: answerSdp
       });
 
       // 新增：错误处理和连接状态监听
@@ -175,7 +175,7 @@ export function useWebRTCWhipWhep({
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
           video: !audioOnly,
-          audio: true,
+          audio: true
         });
         // 如果提供了预览元素但尚未绑定，则绑定并尝试播放
         if (preview && !preview.srcObject) {
@@ -194,7 +194,7 @@ export function useWebRTCWhipWhep({
 
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-        bundlePolicy: "max-bundle",
+        bundlePolicy: "max-bundle"
       });
       whipPcRef.current = pc;
 
@@ -218,9 +218,9 @@ export function useWebRTCWhipWhep({
         method: "POST",
         headers: {
           "Content-Type": "application/sdp",
-          Accept: "application/sdp",
+          Accept: "application/sdp"
         },
-        body: offer.sdp ?? "",
+        body: offer.sdp ?? ""
       });
 
       if (!resp.ok) throw new Error("WHIP 请求失败: " + resp.status);
@@ -234,7 +234,7 @@ export function useWebRTCWhipWhep({
       const answerSdp = await resp.text();
       await pc.setRemoteDescription({
         type: "answer",
-        sdp: answerSdp,
+        sdp: answerSdp
       });
     },
     [audioOnly, preview, localStream]
@@ -280,6 +280,6 @@ export function useWebRTCWhipWhep({
     whipPcRef, // 推流 PeerConnection
     whepPcRef, // 拉流 PeerConnection
     localStreamRef, // 本地流
-    remoteStreamRef, // 远程流（新增）
+    remoteStreamRef // 远程流（新增）
   };
 }

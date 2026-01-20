@@ -19,6 +19,7 @@ export interface LipSyncModelInfo {
 }
 
 export interface CharacterInfo {
+  is_public?: boolean;
   character_id: string;
   character_name: string;
   image: Image;
@@ -190,7 +191,6 @@ export interface ExtendedLipSyncModelInfo extends LipSyncModelInfo {
   id?: string;
 }
 
-
 export interface CharacterFormData {
   name: string;
   llm_prompt: string;
@@ -201,11 +201,10 @@ export interface CharacterFormData {
   ratio: Ratio;
 }
 
-
 export interface QueueStatus {
   /**
- * 预估等待时间(秒),如果用户不在队列中则为None
- */
+   * 预估等待时间(秒),如果用户不在队列中则为None
+   */
   estimate_time: number | null;
   /**
    * 距离被踢出队列的剩余时间(秒),如果已超时则为负数,
@@ -217,4 +216,3 @@ export interface QueueStatus {
    */
   number_of_users_ahead: number | null;
 }
-

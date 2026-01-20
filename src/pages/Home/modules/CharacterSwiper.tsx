@@ -30,7 +30,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (!currentCharacter || characterList.length === 0) return [];
     const len = characterList.length;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id
+      (c) => c.character_id === currentCharacter.character_id,
     );
     if (curIdx === -1) return [];
 
@@ -148,7 +148,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     return cn(
       "group flex flex-col",
       offset === 0 &&
-        "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]"
+        "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]",
     );
   };
 
@@ -177,7 +177,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       <div
         className={cn(
           "flex-1 relative flex items-end justify-center h-full",
-          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
+          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]",
         )}
       >
         {offsets.map((offset, idx) => (
@@ -208,7 +208,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (!currentCharacter || characterList.length === 0) return;
     const len = characterList.length;
     let curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id
+      (c) => c.character_id === currentCharacter.character_id,
     );
     if (curIdx === -1 || targetIdx === curIdx) return;
     const forward = (targetIdx - curIdx + len) % len;
@@ -221,7 +221,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         return;
       }
       curIdx = characterList.findIndex(
-        (c) => c.character_id === currentCharacter.character_id
+        (c) => c.character_id === currentCharacter.character_id,
       );
       const nextIdx = (curIdx + dir + len) % len;
       setCurrentCharacter(characterList[nextIdx]);
@@ -237,7 +237,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const goNext = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id
+      (c) => c.character_id === currentCharacter.character_id,
     );
     const nextIdx = (curIdx + 1) % characterList.length;
     stepToIndex(nextIdx);
@@ -245,7 +245,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const goPrev = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id
+      (c) => c.character_id === currentCharacter.character_id,
     );
     const prevIdx = (curIdx - 1 + characterList.length) % characterList.length;
     stepToIndex(prevIdx);
@@ -258,7 +258,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         <div
           className={cn(
             "flex-1 relative flex items-end justify-center h-full z-[21]",
-            "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
+            "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]",
           )}
         >
           {visibleList.map(({ item: character, offset }, idx: number) => {
@@ -270,7 +270,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                 className={getCardClassByOffset(offset)}
                 onClick={() => {
                   const targetIdx = characterList.findIndex(
-                    (c) => c.character_id === character.character_id
+                    (c) => c.character_id === character.character_id,
                   );
                   if (targetIdx !== -1) stepToIndex(targetIdx);
                 }}
@@ -292,7 +292,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                   }}
                 >
                   <video
-                    src={character.video?.url||''}
+                    src={character.video?.url || ""}
                     poster={character.image.url}
                     autoPlay={false}
                     loop
@@ -303,27 +303,29 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                     }}
                     className="w-full h-full object-cover relative z-0"
                   >
-                    <source src={character.video?.url||''} type="video/mp4" />
+                    <source src={character.video?.url || ""} type="video/mp4" />
                   </video>
 
                   {isCenter && (
                     <>
-                     { character.number_of_likes!==null && <div className="absolute top-3 right-3 flex items-center justify-center">
-                        <LikeTag
-                          characterId={character.character_id}
-                          likeCount={character.number_of_likes}
-                          isLiked={userLikedCharacters.includes(
-                            character.character_id
-                          )}
-                          options={{
-                            size: "large",
-                            iconPosition: "right",
-                            showCount: true,
-                            showIcon: true,
-                            showBorder: false,
-                          }}
-                        />
-                      </div>}
+                      {character.number_of_likes !== null && (
+                        <div className="absolute top-3 right-3 flex items-center justify-center">
+                          <LikeTag
+                            characterId={character.character_id}
+                            likeCount={character.number_of_likes}
+                            isLiked={userLikedCharacters.includes(
+                              character.character_id,
+                            )}
+                            options={{
+                              size: "large",
+                              iconPosition: "right",
+                              showCount: true,
+                              showIcon: true,
+                              showBorder: false,
+                            }}
+                          />
+                        </div>
+                      )}
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center group-hover:opacity-100 opacity-0 transition-opacity duration-300">
                         <CommonButton
                           size="large"
@@ -335,7 +337,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                           }}
                         >
                           <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
-                            {t("common.chat")}
+                            {t("common_chat")}
                             <IconChat className="w-6 h-4" />
                           </span>
                         </CommonButton>

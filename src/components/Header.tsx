@@ -14,9 +14,8 @@ import { cn } from "@/utils/style_utils";
 import { App, Popover } from "antd";
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
-import { getUserCredits } from "@/api/login";
+import { getUserCredits, getUserInfo } from "@/api";
 import UserInfoModal from "./UserInfoModal";
-import { getUserInfo } from "@/api/login";
 
 const Header = () => {
   const { message } = App.useApp();
@@ -45,12 +44,12 @@ const Header = () => {
     try {
       const ret = await getUserCredits();
       if (ret.code !== 200 || !ret.data) {
-        message.error(ret.msg || t("login.fetch_credits_failed"));
+        message.error(ret.msg || t("login_fetch_credits_failed"));
         return;
       }
       setCreditStore(ret.data);
     } catch {
-      message.error(t("common.network_error"));
+      message.error(t("common_network_error"));
     }
   }, [setCreditStore, message, t]);
   // 获取用户信息
@@ -59,12 +58,12 @@ const Header = () => {
     try {
       const ret = await getUserInfo();
       if (ret.code !== 200 || !ret.data) {
-        message.error(ret.msg || t("login.fetch_user_info_failed"));
+        message.error(ret.msg || t("login_fetch_user_info_failed"));
         return;
       }
       setUserStore(ret.data);
     } catch {
-      message.error(t("common.network_error"));
+      message.error(t("common_network_error"));
     }
   }, [setUserStore, message, t]);
 
@@ -72,7 +71,7 @@ const Header = () => {
   const handleShareClick = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
-    message.success(t("common.copied_to_clipboard"));
+    message.success(t("common_copied_to_clipboard"));
   };
   useEffect(() => {
     setCurLng(getLanguage() || "en");
@@ -143,8 +142,8 @@ const Header = () => {
             arrow={false}
             styles={{
               container: {
-                padding: 0,
-              },
+                padding: 0
+              }
             }}
           >
             <div

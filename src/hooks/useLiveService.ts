@@ -44,7 +44,7 @@ export const useLiveService = () => {
           return false;
         }
       } catch {
-        message.error(t("common.error") ?? "Error");
+        message.error(t("common_error") ?? "Error");
         return false;
       }
     },
@@ -71,6 +71,6 @@ export const useLiveService = () => {
     isServiceRunning,
     updateServiceStatus,
     startLiveService,
-    stopLiveService,
+    stopLiveService
   };
 };

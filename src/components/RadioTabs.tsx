@@ -23,7 +23,7 @@ const RadioTabs = ({
   activeValue,
   onChange,
   iconPosition = "left",
-  tabsClassName = "",
+  tabsClassName = ""
 }: RadioTabsProps) => {
   const options: SegmentedProps["options"] = tabsList.map((tab) => {
     const labelContent = (
@@ -57,7 +57,7 @@ const RadioTabs = ({
         labelContent
       ),
       value: tab.value,
-      disabled: tab.disabled,
+      disabled: tab.disabled
     };
   });
 

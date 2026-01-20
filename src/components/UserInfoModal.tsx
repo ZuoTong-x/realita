@@ -60,7 +60,7 @@ const UserInfoModal: React.FC = () => {
           <IconLogOut className="w-4 h-4 text-[#3B3D2C]" />
         </div>
         <span className="text-sm font-medium text-[#3B3D2C]">
-          {t("login.login_out") || "Log Out"}
+          {t("login_login_out") || "Log Out"}
         </span>
       </div>
 

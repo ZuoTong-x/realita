@@ -4,7 +4,7 @@ import {
   Route,
   Navigate,
   useLocation,
-  useNavigate,
+  useNavigate
 } from "react-router-dom";
 import { useEffect } from "react";
 import type { AppRoute } from "./routes/route";

@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-// import { getList } from "@/api/home";
 import CommonButton from "@/components/Common/Button";
 import IconStar from "@/assets/svg/IconStar.svg?react";
 import { useTranslation } from "react-i18next";
@@ -8,7 +7,11 @@ import CharacterSlider from "./modules/CharacterSlider";
 import CharacterCreate from "./modules/CharacterCreate";
 import CharacterPreview from "./modules/CharacterPreview";
 
-import { getCharacterList, getUserLikedCharacters } from "@/api";
+import {
+  getPublicCharacterList,
+  getNonPublicCharacterList,
+  getUserLikedCharacters,
+} from "@/api";
 import useCharacterListStore from "@/stores/characterListStore";
 import type { CharacterInfo } from "@/types/Character";
 import { Ratio } from "@/types/Live";
@@ -31,15 +34,23 @@ const HomePage = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewCharacterId, setPreviewCharacterId] = useState("");
   const [previewRatio, setPreviewRatio] = useState<Ratio>(Ratio.PORTRAIT);
-  
+
   const init = useCallback(async () => {
-    const res = await getCharacterList();
-    if (res.code === 200) {
-      setCharacterList(res.data);
-      if (res.data.length > 0) {
-        setCurrentCharacter(res.data[0]);
-      }
-    }
+    const publicCharacters = await getPublicCharacterList();
+    const nonPublicCharacters = await getNonPublicCharacterList();
+    const characterList = [
+      ...publicCharacters.data.map((item: CharacterInfo) => ({
+        ...item,
+        is_public: true,
+      })),
+      ...nonPublicCharacters.data.map((item: CharacterInfo) => ({
+        ...item,
+        is_public: false,
+      })),
+    ];
+    setCharacterList(characterList);
+    console.log(characterList);
+    setCurrentCharacter(characterList[0]);
     const likedCharacters = await getUserLikedCharacters();
     if (likedCharacters.code === 200) {
       setUserLikedCharacters(likedCharacters.data);
@@ -49,7 +60,7 @@ const HomePage = () => {
   useEffect(() => {
     init();
     const urlParams = new URLSearchParams(window.location.search);
-    const characterId = urlParams.get('characterId');
+    const characterId = urlParams.get("characterId");
     if (characterId) {
       setPreviewCharacterId(characterId);
       setPreviewRatio(Ratio.PORTRAIT); // 默认使用竖屏比例
@@ -67,7 +78,12 @@ const HomePage = () => {
   // 从预览切换到编辑
   const handleEditFromPreview = (character: CharacterInfo) => {
     setPreviewOpen(false);
-    setCreateCharacterInfo(character);
+    const characterInfo = characterList.find(
+      (item) => item.character_id === character.character_id,
+    );
+    if (characterInfo) {
+      setCreateCharacterInfo(characterInfo);
+    }
     setCreateOpen(true);
   };
 
@@ -76,13 +92,13 @@ const HomePage = () => {
     setPreviewCharacterId(characterId);
     setPreviewRatio(ratio);
     setPreviewOpen(true);
-    init()
+    init();
   };
 
   const handleDeleteFromPreview = () => {
     setPreviewOpen(false);
     setPreviewCharacterId("");
-    init()
+    init();
   };
   return (
     <div className="w-full h-full min-w-[800px] flex flex-col justify-between items-center default-bg-container relative">
@@ -95,7 +111,7 @@ const HomePage = () => {
         />
       </div>
       {/** 侧边栏   */}
-      <div className="absolute top-[50%] translate-y-[-50%] right-5 h-140 w-20 ">
+      <div className="absolute top-[50%] translate-y-[-50%] right-5 h-140 w-20 z-[22]">
         <CharacterSlider
           characterList={characterList}
           currentCharacter={currentCharacter}
@@ -114,7 +130,7 @@ const HomePage = () => {
           }}
         >
           <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
-            {t("home.create_new_character")}
+            {t("home_create_new_character")}
             <IconStar className="w-6 h-6" />
           </span>
         </CommonButton>

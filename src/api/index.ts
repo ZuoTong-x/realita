@@ -1,3 +1,3 @@
-export * from "./userRequest";
-export * from "./characterRequest";
+export * from "./character";
 export * from "./login";
+export * from "./common";

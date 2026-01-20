@@ -3,7 +3,7 @@ import LoginForm from "./modules/LoginForm";
 import "./index.css";
 
 import useCamera from "@/hooks/useCamera";
-import { getShowcaseExampleList } from "@/api/login";
+import { getShowcaseExampleList } from "@/api";
 import type { Examples } from "@/types/Login";
 
 import VideoCallOverlay from "./modules/VideoCallOverlay";
@@ -21,11 +21,11 @@ const LoginPage = () => {
     stream: userStream,
     granted: cameraGranted,
     startCamera,
-    stopCamera,
+    stopCamera
   } = useCamera({
     video: { facingMode: "user" },
     audio: false,
-    autoPlay: true,
+    autoPlay: true
   });
 
   // 拉取展示数据并拆成三列
@@ -73,7 +73,7 @@ const LoginPage = () => {
         <div
           className="relative flex justify-center items-start z-10"
           style={{
-            transform: "translateX(-500px) translateY(-200px) rotate(15deg)",
+            transform: "translateX(-500px) translateY(-200px) rotate(15deg)"
           }}
         >
           <div className="flex gap-6 w-full justify-center">

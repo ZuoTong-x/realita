@@ -14,9 +14,9 @@ export const uploadAssetFile = async (
   }
   const response = await request.post("/asset", formData, {
     headers: {
-      "Content-Type": "multipart/form-data",
+      "Content-Type": "multipart/form-data"
     },
-    timeout: timeout * 1000, // 转换为毫秒
+    timeout: timeout * 1000 // 转换为毫秒
   });
   return response.data;
 };

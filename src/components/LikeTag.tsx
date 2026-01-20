@@ -2,7 +2,7 @@ import IconLikeFilled from "@/assets/svg/IconLikeFilled.svg?react";
 import IconLike from "@/assets/svg/IconLike.svg?react";
 import { useState, useEffect } from "react";
 import { Tag, App } from "antd";
-import { likeCharacter, dislikeCharacter } from "@/api/characterRequest";
+import { likeCharacter, dislikeCharacter } from "@/api";
 
 export const LikeTag = ({
   characterId,
@@ -15,8 +15,8 @@ export const LikeTag = ({
     iconPosition: "left",
     showCount: true,
     showIcon: true,
-    showBorder: true,
-  },
+    showBorder: true
+  }
 }: {
   characterId: string;
   likeCount: number;
@@ -55,7 +55,7 @@ export const LikeTag = ({
 
     // 防止重复点击
     if (isLoading) return;
-   
+
     // 保存旧状态，用于失败时回滚
     const oldIsLiked = isLiked;
     const oldLikeCount = likeCount;
@@ -150,15 +150,11 @@ export const LikeTag = ({
   const iconElement = options.showIcon ? (
     isLiked ? (
       <IconLikeFilled
-        className={`${getIconSizeClass()} like-icon-filled ${
-          isAnimating ? "like-icon-animate" : ""
-        }`}
+        className={`${getIconSizeClass()} like-icon-filled ${isAnimating ? "like-icon-animate" : ""}`}
       />
     ) : (
       <IconLike
-        className={`${getIconSizeClass()} like-icon-outline ${
-          isAnimating ? "like-icon-animate" : ""
-        }`}
+        className={`${getIconSizeClass()} like-icon-outline ${isAnimating ? "like-icon-animate" : ""}`}
       />
     )
   ) : null;

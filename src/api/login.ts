@@ -1,5 +1,5 @@
 import request from "./request";
-import type { ApiResponse } from "@/types";
+import type { ApiResponse, CaptchaRespInfo } from "@/types";
 import type { Examples, TokenInfo, UserCredits } from "@/types/Login";
 import type { UserInfo } from "@/types/UserInfo";
 // 首页优秀示例列表 /showcase_examples
@@ -18,7 +18,7 @@ export const signInWithGoogle = async (
   const response = await request.post<ApiResponse<TokenInfo>>(
     "/google_sign_in",
     {
-      access_token: accessToken,
+      access_token: accessToken
     }
   );
   return response.data;
@@ -31,26 +31,48 @@ export const signOut = async (): Promise<ApiResponse<null>> => {
   return response.data;
 };
 
-// 获取积分余额; /get_user_credits;
+// 获取积分余额; /user_credits;
 
 export const getUserCredits = async (): Promise<ApiResponse<UserCredits>> => {
-  const response =
-    await request.get<ApiResponse<UserCredits>>("/get_user_credits");
+  const response = await request.get<ApiResponse<UserCredits>>("/user_credits");
   return response.data;
 };
 
-// 获取用户信息; /get_user_info;
+// 获取用户信息; /user_info;
 export const getUserInfo = async (): Promise<ApiResponse<UserInfo>> => {
-  const response = await request.get<ApiResponse<UserInfo>>("/get_user_info");
+  const response = await request.get<ApiResponse<UserInfo>>("/user_info");
   return response.data;
 };
 
-// 获取用户喜欢的角色列表; /get_user_liked_characters
+// 获取用户喜欢的角色列表; /user_liked_characters
 export const getUserLikedCharacters = async (): Promise<
   ApiResponse<string[]>
 > => {
   const response = await request.get<ApiResponse<string[]>>(
-    "/get_user_liked_characters"
+    "/user_liked_characters"
+  );
+  return response.data;
+};
+
+// 发送手机验证码（/auth/send-code）
+export const sendCaptcha = async (
+  phone: string
+): Promise<ApiResponse<CaptchaRespInfo>> => {
+  const response = await request.post<ApiResponse<CaptchaRespInfo>>(
+    "/auth/send-code",
+    { phone }
+  );
+  return response.data;
+};
+
+// 验证手机验证码（/auth/verify-code）
+export const verifyCaptcha = async (
+  phone: string,
+  code: string
+): Promise<ApiResponse<TokenInfo>> => {
+  const response = await request.post<ApiResponse<TokenInfo>>(
+    "/auth/verify-code",
+    { phone, code }
   );
   return response.data;
 };

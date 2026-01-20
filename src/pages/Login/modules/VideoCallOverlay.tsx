@@ -28,7 +28,7 @@ const VideoCallOverlay = ({
   userVideoRef,
   onToggleCamera,
   onToggleMute,
-  onStartCamera,
+  onStartCamera
 }: VideoCallOverlayProps) => {
   const { t } = useTranslation();
   return (
@@ -56,7 +56,7 @@ const VideoCallOverlay = ({
             className="relative"
             style={{
               width: `${USER_VIDEO_WIDTH}px`,
-              aspectRatio: "9 / 16",
+              aspectRatio: "9 / 16"
             }}
           >
             {userStream ? (
@@ -73,7 +73,7 @@ const VideoCallOverlay = ({
               >
                 <IconCamera className="w-8 h-8 mb-2 opacity-80" />
                 <span className="text-xs opacity-90">
-                  {t("common.open_camera")}
+                  {t("common_open_camera")}
                 </span>
               </button>
             )}

@@ -3,7 +3,7 @@ import IconGoogle from "@/assets/svg/IconGoogle.svg?react";
 import { useTranslation } from "react-i18next";
 import { useGoogleLogin } from "@react-oauth/google";
 
-import { signInWithGoogle, getUserCredits } from "@/api/login";
+import { signInWithGoogle, getUserCredits } from "@/api";
 import useUserStore from "@/stores/userStore";
 import type { TokenInfo } from "@/types";
 import { App } from "antd";
@@ -29,13 +29,13 @@ const LoginForm = () => {
     },
     onError: (errorResponse) => {
       console.log("Google 登录失败:", errorResponse);
-      message.error(t("login.login_failed"));
+      message.error(t("login_login_failed"));
       setLogging(false);
     },
     onNonOAuthError: (error) => {
       console.error("Google 取消授权:", error);
       setLogging(false);
-    },
+    }
   });
 
   // 验证 Google Token
@@ -49,7 +49,7 @@ const LoginForm = () => {
       handleSuccessResp(res.data);
     } catch (error) {
       console.error("验证 Google Token 错误:", error);
-      message.error(t("login.login_failed"));
+      message.error(t("login_login_failed"));
     } finally {
       setLogging(false);
     }
@@ -69,18 +69,18 @@ const LoginForm = () => {
     const cRet = await getUserCredits();
     if (cRet.code !== 200) {
       console.error("获取用户积分信息失败:", cRet.msg);
-      message.error(cRet.msg ? cRet.msg : t("login.login_failed"));
+      message.error(cRet.msg ? cRet.msg : t("login_login_failed"));
     } else {
       setCreditStore(cRet.data);
     }
 
     console.log("Google 登录成功:");
-    message.success(t("login.login_success"));
+    message.success(t("login_login_success"));
     navigate("/");
   };
 
   const handleGLClick = () => {
-    message.loading(t("login.login_fetching"));
+    message.loading(t("login_login_fetching"));
     setLogging(true);
     loginGoogle();
   };
@@ -88,25 +88,25 @@ const LoginForm = () => {
   const handlePhoneLogin = async () => {
     // event.preventDefault(); // 阻止默认提交刷新页面
     // if (formData.phone === "") {
-    //   message.warning(t("login.login_phone_placeholder"));
+    //   message.warning(t("login_login_phone_placeholder"));
     //   return;
     // }
     // if (formData.captcha === "") {
-    //   message.warning(t("login.login_captcha_placeholder"));
+    //   message.warning(t("login_login_captcha_placeholder"));
     //   return;
     // }
-    // const tost = message.loading(t("login.login_fetching"));
+    // const tost = message.loading(t("login_login_fetching"));
     // setLogging(true);
     // try {
     //   const res = await verifyCaptcha(formData.phone, formData.captcha);
     //   if (res.code !== 200) {
-    //     message.error(res.msg || t("login.login_failed"));
+    //     message.error(res.msg || t("login_login_failed"));
     //     return;
     //   }
     //   handleSuccessResp(res.data);
     // } catch (error) {
     //   console.error("手机号登录失败:", error);
-    //   message.error(t("login.login_failed"));
+    //   message.error(t("login_login_failed"));
     // } finally {
     //   setLogging(false);
     //   tost();
@@ -116,7 +116,7 @@ const LoginForm = () => {
   // 发送验证码
   const handleCaptchaClick = async () => {
     // if (formData.phone === "") {
-    //   message.warning(t("login.login_phone_placeholder"));
+    //   message.warning(t("login_login_phone_placeholder"));
     //   return;
     // }
     // if (disabled) {
@@ -154,10 +154,10 @@ const LoginForm = () => {
       <div className="w-full max-w-[320px]">
         <div className="flex flex-col gap-2 z-[20]">
           <span className="mx-auto text-3xl font-bold text-[#3B3D2C]">
-            {t("login.login_welcome")}
+            {t("login_login_welcome")}
           </span>
           <span className="text-sm font-normal text-[#3B3D2C] text-center mb-4">
-            {t("login.login_continue")}
+            {t("login_login_continue")}
           </span>
 
           {/* 使用 Google 登录 */}
@@ -167,7 +167,7 @@ const LoginForm = () => {
           >
             <IconGoogle className="w-5 h-5" />
             <span className="text-sm font-medium text-[#3B3D2C]">
-              {t("login.login_google")}
+              {t("login_login_google")}
             </span>
           </button>
 
@@ -192,7 +192,7 @@ const LoginForm = () => {
                 name="phone"
                 maxLength={11}
                 value={formData.phone}
-                placeholder={t("login.login_phone_placeholder")}
+                placeholder={t("login_login_phone_placeholder")}
                 onChange={handleChange}
               />
             </div>
@@ -204,7 +204,7 @@ const LoginForm = () => {
                 type="text"
                 name="captcha"
                 maxLength={6}
-                placeholder={t("login.login_captcha_placeholder")}
+                placeholder={t("login_login_captcha_placeholder")}
                 value={formData.captcha}
                 onChange={handleChange}
               />
@@ -219,8 +219,8 @@ const LoginForm = () => {
                 {remainTime > 0
                   ? `${remainTime}秒`
                   : hasSendCaptcha
-                    ? t("login.login_resend_captcha")
-                    : t("login.login_get_captcha")}
+                    ? t("login_login_resend_captcha")
+                    : t("login_login_get_captcha")}
               </button>
             </div>
 
@@ -235,19 +235,19 @@ const LoginForm = () => {
               onClick={handlePhoneLogin}
             >
               <span className="text-sm font-medium">
-                {t("login.login_verify")}
+                {t("login_login_verify")}
               </span>
             </button>
 
             {/* 协议 */}
             <span className="mt-6 mx-auto text-xs font-normal text-[#3B3D2C] text-center">
-              {t("login.login_agreement")} <br />
+              {t("login_login_agreement")} <br />
               <a href="#" className="text-[#23B9BC]">
-                {t("login.login_privacy")}
+                {t("login_login_privacy")}
               </a>{" "}
-              {t("login.login_terms")}
+              {t("login_login_terms")}
               <a href="#" className="text-[#23B9BC]">
-                {t("login.login_service")}
+                {t("login_login_service")}
               </a>
             </span>
           </form>

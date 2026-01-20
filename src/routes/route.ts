@@ -18,26 +18,26 @@ export const mainRoutes: AppRoute[] = [
     path: "",
     element: HomePage,
     name: "home",
-    requiresAuth: true,
+    requiresAuth: true
   },
   {
     path: "login",
     element: LoginPage,
     name: "login",
-    requiresAuth: false,
+    requiresAuth: false
   },
   {
     path: "live",
     element: LivePage,
     name: "live",
-    requiresAuth: true,
+    requiresAuth: true
   },
   {
     path: "user",
     element: UserPage,
     name: "user",
-    requiresAuth: true,
-  },
+    requiresAuth: true
+  }
 ];
 
 // 顶层路由
@@ -45,6 +45,6 @@ export const routes: AppRoute[] = [
   {
     path: "/",
     element: MainLayout,
-    children: mainRoutes,
-  },
+    children: mainRoutes
+  }
 ];
