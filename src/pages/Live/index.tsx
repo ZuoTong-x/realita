@@ -35,7 +35,7 @@ const LivePage = () => {
   const [uiVisible, setUiVisible] = useState<boolean>(true);
   // 双击/双指触控检测
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(
-    null,
+    null
   );
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);

@@ -3,7 +3,7 @@ import IconGoogle from "@/assets/svg/IconGoogle.svg?react";
 import { useTranslation } from "react-i18next";
 import { useGoogleLogin } from "@react-oauth/google";
 
-import { signInWithGoogle, getUserCredits } from "@/api";
+import { signInWithGoogle } from "@/api";
 import useUserStore from "@/stores/userStore";
 import type { TokenInfo } from "@/types";
 import { App } from "antd";
@@ -16,7 +16,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { message } = App.useApp();
-  const { loginStore, setCreditStore } = useUserStore();
+  const { loginStore } = useUserStore();
   const [formData, setFormData] = useState({ phone: "", captcha: "" });
   const [canLogin, setCanLogin] = useState(false);
   const [, setLogging] = useState(false);
@@ -35,7 +35,7 @@ const LoginForm = () => {
     onNonOAuthError: (error) => {
       console.error("Google 取消授权:", error);
       setLogging(false);
-    }
+    },
   });
 
   // 验证 Google Token
@@ -66,13 +66,6 @@ const LoginForm = () => {
   // 获取用户信息&积分信息
   const fetchUserInfos = async () => {
     // 获取用户积分信息
-    const cRet = await getUserCredits();
-    if (cRet.code !== 200) {
-      console.error("获取用户积分信息失败:", cRet.msg);
-      message.error(cRet.msg ? cRet.msg : t("login_login_failed"));
-    } else {
-      setCreditStore(cRet.data);
-    }
 
     console.log("Google 登录成功:");
     message.success(t("login_login_success"));

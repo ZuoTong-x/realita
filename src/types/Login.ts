@@ -75,10 +75,3 @@ export interface TokenInfo {
   refresh_token_expires_in: number;
   token_type: string;
 }
-
-export interface UserCredits {
-  /**
-   * 用户当前的积分余额数量
-   */
-  credits: number;
-}

@@ -20,9 +20,11 @@ import {
   leaveQueue,
   sendQueueHeartbeat,
   deleteCharacter,
+  getAvailableStreams,
 } from "@/api";
 import type { QueueStatus } from "@/types/Character";
 import { useRequest } from "ahooks";
+import { useNavigate } from "react-router-dom";
 
 type CharacterPreviewProps = {
   open: boolean;
@@ -42,8 +44,9 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
 }) => {
   const { t } = useTranslation();
   const { message } = App.useApp();
+  const navigate = useNavigate();
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(
-    null,
+    null
   );
   const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
   const [isInQueue, setIsInQueue] = useState(false);
@@ -125,7 +128,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       setIsInQueue(false);
       setQueueStatus(null);
       cancel();
-      message.info(t("queue_left_queue"));
     }
   };
   const formatEstimateTime = (estimateTime: number) => {
@@ -147,7 +149,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
         message.info(t("queue_not_in_queue"));
         cancel();
       } else if (
-        res.data.number_of_users_ahead > 0 ||
+        res.data.number_of_users_ahead > 0 &&
         res.data.estimate_time! > 0
       ) {
         setIsInQueue(true);
@@ -157,11 +159,17 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
         }
       } else {
         // 排队完成 可以开始聊天
-        message.success(t("queue_ready_to_chat"));
+
         handleLeaveQueue();
-        // TODO: 跳转到聊天页面
+
         setIsInQueue(false);
         cancel();
+        const streamRes = await getAvailableStreams();
+        if (streamRes.code === 200) {
+          navigate(`/live/?stream=${streamRes.data.stream_id}`);
+        } else {
+          message.error(streamRes.msg || t("common_error"));
+        }
       }
     }
   };

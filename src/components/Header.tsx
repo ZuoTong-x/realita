@@ -14,7 +14,7 @@ import { cn } from "@/utils/style_utils";
 import { App, Popover } from "antd";
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
-import { getUserCredits, getUserInfo } from "@/api";
+import { getUserInfo } from "@/api";
 import UserInfoModal from "./UserInfoModal";
 
 const Header = () => {
@@ -24,8 +24,7 @@ const Header = () => {
   const location = useLocation();
   const [curLng, setCurLng] = useState<string>("zh");
   const [routerName, setRouterName] = useState<string>("home");
-  const { userInfo, credits, isLoggedIn, setCreditStore, setUserStore } =
-    useUserStore();
+  const { userInfo, isLoggedIn, setUserStore } = useUserStore();
   const [isLogged, setIsLogged] = useState<boolean>(false);
 
   const handleLangClick = () => {
@@ -39,19 +38,7 @@ const Header = () => {
       setCurLng("zh");
     }
   };
-  // 获取积分
-  const fetchCreditInfo = useCallback(async () => {
-    try {
-      const ret = await getUserCredits();
-      if (ret.code !== 200 || !ret.data) {
-        message.error(ret.msg || t("login_fetch_credits_failed"));
-        return;
-      }
-      setCreditStore(ret.data);
-    } catch {
-      message.error(t("common_network_error"));
-    }
-  }, [setCreditStore, message, t]);
+
   // 获取用户信息
 
   const fetchUserInfo = useCallback(async () => {
@@ -85,9 +72,8 @@ const Header = () => {
   useEffect(() => {
     if (isLoggedIn) {
       fetchUserInfo();
-      fetchCreditInfo();
     }
-  }, [isLoggedIn, fetchCreditInfo, fetchUserInfo]);
+  }, [isLoggedIn, fetchUserInfo]);
 
   useEffect(() => {
     setIsLogged(isLoggedIn);
@@ -125,10 +111,10 @@ const Header = () => {
           </span>
         </CommonButton>
         {/* 积分 */}
-        {isLogged && credits && (
+        {isLogged && (
           <CommonButton className="w-14 h-7 flex items-center mr-2">
             <span className="flex items-center text-sm font-normal text-[#3B3D2C]">
-              {credits.credits}
+              {userInfo?.credits || 0}
               <IconCredit className="w-3.5 h-3.5 ml-1 text-[#2A343D]" />
             </span>
           </CommonButton>
@@ -142,8 +128,8 @@ const Header = () => {
             arrow={false}
             styles={{
               container: {
-                padding: 0
-              }
+                padding: 0,
+              },
             }}
           >
             <div

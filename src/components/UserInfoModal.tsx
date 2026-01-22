@@ -43,7 +43,7 @@ const UserInfoModal: React.FC = () => {
               <div className="bg-[#3B3D2C] rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
                 <IconCredit className="w-3 h-3 text-[#FFBC36]" />
                 <span className="text-xs font-bold text-white leading-none">
-                  {credits?.credits ?? 0}
+                  {userInfo?.credits || 0}
                 </span>
               </div>
             </div>

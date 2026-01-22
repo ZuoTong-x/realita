@@ -116,21 +116,21 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   const updateFormData = useCallback(
     <K extends keyof CharacterFormData>(
       key: K,
-      value: CharacterFormData[K],
+      value: CharacterFormData[K]
     ) => {
       setFormData((prev) => {
         const newData = { ...prev, [key]: value };
         return newData;
       });
     },
-    [],
+    []
   );
 
   const updateFormDataBatch = useCallback(
     (updates: Partial<CharacterFormData>) => {
       setFormData((prev) => ({ ...prev, ...updates }));
     },
-    [setFormData],
+    [setFormData]
   );
   // --- Custom Hooks ---
 
@@ -141,7 +141,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   };
 
   const handleImgFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -201,7 +201,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       const mime = imgFileRef.current?.type || "image/png";
       const ext = mime.split("/")[1] || "png";
       const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), mime),
+        canvas.toBlob((b) => resolve(b), mime)
       );
       if (blob) {
         const file = new File([blob], `cropped-image.${ext}`, { type: mime });
@@ -352,7 +352,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
     } catch (error) {
       console.error(error);
       message.error(
-        error instanceof Error ? error.message : "获取音频失败，请稍后重试。",
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
       );
       setAudioStatus("idle");
     }
@@ -426,7 +426,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   useEffect(() => {
     if (characterInfo && processedVoiceList.length > 0) {
       const target = processedVoiceList.find(
-        (v) => v.id === characterInfo.voice.id,
+        (v) => v.id === characterInfo.voice.id
       );
       if (target) updateFormData("voice", target);
     }
@@ -436,7 +436,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   useEffect(() => {
     if (characterInfo && lipSyncModels.length > 0) {
       const targetModel = lipSyncModels.find(
-        (m) => m.id === characterInfo.video_model_id,
+        (m) => m.id === characterInfo.video_model_id
       );
       if (targetModel) {
         updateFormData("model", targetModel);
@@ -624,7 +624,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                   className={cn(
                     "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300 absolute right-2 shadow-md",
                     "bg-[#fff] cursor-pointer group ",
-                    audioStatus === "loading" && "animate-pulse",
+                    audioStatus === "loading" && "animate-pulse"
                   )}
                   onClick={(e) => {
                     handleAudioPlay(e);
@@ -638,7 +638,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                     <IconPlay
                       className={cn(
                         "w-6 h-6 transition-transform duration-300 text-[#000]",
-                        currentAudioUrlRef.current && "group-hover:scale-110",
+                        currentAudioUrlRef.current && "group-hover:scale-110"
                       )}
                     />
                   )}

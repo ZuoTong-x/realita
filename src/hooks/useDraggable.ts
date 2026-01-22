@@ -52,7 +52,7 @@ export default function useDraggable(
         startX: e.clientX,
         startY: e.clientY,
         baseLeft: position.left,
-        baseTop: position.top
+        baseTop: position.top,
       };
       e.preventDefault();
     };
@@ -64,7 +64,7 @@ export default function useDraggable(
         startX: t.clientX,
         startY: t.clientY,
         baseLeft: position.left,
-        baseTop: position.top
+        baseTop: position.top,
       };
       e.preventDefault();
     };

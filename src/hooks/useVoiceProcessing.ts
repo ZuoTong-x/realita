@@ -27,12 +27,12 @@ export const useVoiceProcessing = (voiceList: Voice[]) => {
         ...v,
         language: langInfo ? { ...langInfo } : null,
         gender: genderInfo ? { ...genderInfo } : null,
-        age: ageInfo ? { ...ageInfo } : null
+        age: ageInfo ? { ...ageInfo } : null,
       };
     });
 
     return {
-      processedVoiceList: processed
+      processedVoiceList: processed,
     };
   }, [voiceList]);
 

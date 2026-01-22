@@ -18,7 +18,7 @@ export const signInWithGoogle = async (
   const response = await request.post<ApiResponse<TokenInfo>>(
     "/google_sign_in",
     {
-      access_token: accessToken
+      access_token: accessToken,
     }
   );
   return response.data;
@@ -28,13 +28,6 @@ export const signInWithGoogle = async (
 
 export const signOut = async (): Promise<ApiResponse<null>> => {
   const response = await request.post<ApiResponse<null>>("/sign_out");
-  return response.data;
-};
-
-// 获取积分余额; /user_credits;
-
-export const getUserCredits = async (): Promise<ApiResponse<UserCredits>> => {
-  const response = await request.get<ApiResponse<UserCredits>>("/user_credits");
   return response.data;
 };
 
