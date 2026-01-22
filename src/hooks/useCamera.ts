@@ -33,13 +33,13 @@ function normalizeConstraints(opts?: UseCameraOptions): MediaStreamConstraints {
       facingMode: facingMode ?? "user",
       width: width ?? { ideal: 1280 },
       height: height ?? { ideal: 720 },
-      ...rest
+      ...rest,
     };
   } else if (video === true) {
     video = {
       facingMode: "user",
       width: { ideal: 1280 },
-      height: { ideal: 720 }
+      height: { ideal: 720 },
     };
   }
   return { video, audio };
@@ -108,6 +108,6 @@ export default function useCamera(options?: UseCameraOptions): UseCameraResult {
     startCamera,
     stopCamera,
     toggleCamera,
-    lastError
+    lastError,
   };
 }

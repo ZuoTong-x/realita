@@ -18,5 +18,5 @@ export const navigation = {
 
   replace(to: To, options?: NavigateOptions) {
     this.push(to, { ...options, replace: true });
-  }
+  },
 };

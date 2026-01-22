@@ -1,6 +1,6 @@
 import request from "./request";
 import type { ApiResponse, CaptchaRespInfo } from "@/types";
-import type { Examples, TokenInfo, UserCredits } from "@/types/Login";
+import type { Examples, TokenInfo } from "@/types/Login";
 import type { UserInfo } from "@/types/UserInfo";
 // 首页优秀示例列表 /showcase_examples
 export const getShowcaseExampleList = async (): Promise<

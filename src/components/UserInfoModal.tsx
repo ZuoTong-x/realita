@@ -8,7 +8,7 @@ import IconLogOut from "@/assets/svg/IconLogOut.svg?react";
 
 const UserInfoModal: React.FC = () => {
   const { t } = useTranslation();
-  const { userInfo, credits, logoutStore } = useUserStore();
+  const { userInfo, logoutStore } = useUserStore();
 
   return (
     <div className="w-[300px] p-4 bg-white rounded-2xl shadow-xl border border-gray-100">
