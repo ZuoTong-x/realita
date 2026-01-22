@@ -6,7 +6,7 @@ type UseCountdown = (
   count: number,
   disabled: boolean,
   start: (duration?: number) => void,
-  cancel: () => void
+  cancel: () => void,
 ];
 
 const useCountdown: UseCountdown = (time: number = 60) => {

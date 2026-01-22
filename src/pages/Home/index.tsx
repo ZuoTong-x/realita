@@ -79,7 +79,7 @@ const HomePage = () => {
   const handleEditFromPreview = (character: CharacterInfo) => {
     setPreviewOpen(false);
     const characterInfo = characterList.find(
-      (item) => item.character_id === character.character_id,
+      (item) => item.character_id === character.character_id
     );
     if (characterInfo) {
       setCreateCharacterInfo(characterInfo);

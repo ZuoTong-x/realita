@@ -30,7 +30,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (!currentCharacter || characterList.length === 0) return [];
     const len = characterList.length;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id,
+      (c) => c.character_id === currentCharacter.character_id
     );
     if (curIdx === -1) return [];
 
@@ -148,7 +148,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     return cn(
       "group flex flex-col",
       offset === 0 &&
-        "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]",
+        "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]"
     );
   };
 
@@ -177,7 +177,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       <div
         className={cn(
           "flex-1 relative flex items-end justify-center h-full",
-          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]",
+          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
         )}
       >
         {offsets.map((offset, idx) => (
@@ -208,7 +208,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (!currentCharacter || characterList.length === 0) return;
     const len = characterList.length;
     let curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id,
+      (c) => c.character_id === currentCharacter.character_id
     );
     if (curIdx === -1 || targetIdx === curIdx) return;
     const forward = (targetIdx - curIdx + len) % len;
@@ -221,7 +221,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         return;
       }
       curIdx = characterList.findIndex(
-        (c) => c.character_id === currentCharacter.character_id,
+        (c) => c.character_id === currentCharacter.character_id
       );
       const nextIdx = (curIdx + dir + len) % len;
       setCurrentCharacter(characterList[nextIdx]);
@@ -237,7 +237,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const goNext = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id,
+      (c) => c.character_id === currentCharacter.character_id
     );
     const nextIdx = (curIdx + 1) % characterList.length;
     stepToIndex(nextIdx);
@@ -245,7 +245,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const goPrev = () => {
     if (!currentCharacter || characterList.length === 0) return;
     const curIdx = characterList.findIndex(
-      (c) => c.character_id === currentCharacter.character_id,
+      (c) => c.character_id === currentCharacter.character_id
     );
     const prevIdx = (curIdx - 1 + characterList.length) % characterList.length;
     stepToIndex(prevIdx);
@@ -258,7 +258,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         <div
           className={cn(
             "flex-1 relative flex items-end justify-center h-full z-[21]",
-            "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]",
+            "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
           )}
         >
           {visibleList.map(({ item: character, offset }, idx: number) => {
@@ -270,7 +270,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                 className={getCardClassByOffset(offset)}
                 onClick={() => {
                   const targetIdx = characterList.findIndex(
-                    (c) => c.character_id === character.character_id,
+                    (c) => c.character_id === character.character_id
                   );
                   if (targetIdx !== -1) stepToIndex(targetIdx);
                 }}
@@ -314,7 +314,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                             characterId={character.character_id}
                             likeCount={character.number_of_likes}
                             isLiked={userLikedCharacters.includes(
-                              character.character_id,
+                              character.character_id
                             )}
                             options={{
                               size: "large",

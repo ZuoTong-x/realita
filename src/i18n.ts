@@ -13,17 +13,17 @@ i18n
   .init({
     resources: {
       en: { translation: en },
-      zh: { translation: zh }
+      zh: { translation: zh },
     },
     lng: savedLng, // 默认语言
     fallbackLng: "zh", // 找不到时用中文
     interpolation: {
-      escapeValue: false // React 已经有 XSS 保护，不需要转义
+      escapeValue: false, // React 已经有 XSS 保护，不需要转义
     },
     detection: {
       order: ["querystring", "localStorage", "cookie", "navigator", "htmlTag"],
-      lookupQuerystring: "lng"
-    }
+      lookupQuerystring: "lng",
+    },
   });
 
 export default i18n;

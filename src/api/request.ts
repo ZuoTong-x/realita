@@ -3,7 +3,7 @@ import type {
   AxiosInstance,
   InternalAxiosRequestConfig,
   AxiosResponse,
-  AxiosError
+  AxiosError,
 } from "axios";
 import { getToken } from "../utils/user_util";
 import useUserStore from "../stores/userStore";
@@ -13,7 +13,7 @@ import { getRuntimeEnv } from "@/config/runtimeEnv";
 // 创建 Axios 实例
 const request: AxiosInstance = axios.create({
   baseURL: getRuntimeEnv().VITE_API_BASE, // runtime env first, fallback to build-time
-  timeout: 10000 // 10 秒超时
+  timeout: 10000, // 10 秒超时
 });
 
 // 请求拦截器

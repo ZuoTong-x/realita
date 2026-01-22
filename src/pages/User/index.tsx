@@ -102,7 +102,7 @@ const UserPage = () => {
     }
     if (activeValue === "likes") {
       return publicCharacterList.filter((item) =>
-        userLikedCharacters.includes(item.character_id),
+        userLikedCharacters.includes(item.character_id)
       );
     }
     if (activeValue === "assets") {
@@ -191,7 +191,7 @@ const UserPage = () => {
                         characterId={item.character_id}
                         likeCount={item.number_of_likes || 0}
                         isLiked={userLikedCharacters.includes(
-                          item.character_id,
+                          item.character_id
                         )}
                         onLikeChange={() => {
                           handleLikeChange();

@@ -149,7 +149,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     } catch (error) {
       console.error(error);
       message.error(
-        error instanceof Error ? error.message : "获取音频失败，请稍后重试。",
+        error instanceof Error ? error.message : "获取音频失败，请稍后重试。"
       );
       setPlayingId(null);
     } finally {
@@ -328,7 +328,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                     className={cn(
                       "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
                       "bg-[#000] cursor-pointer group hover:bg-[#333]",
-                      loadingId === v.id && "animate-pulse",
+                      loadingId === v.id && "animate-pulse"
                     )}
                     onClick={(e) => {
                       handleAudioPlay(e, v);
@@ -342,7 +342,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                       <IconPlay
                         className={cn(
                           "w-6 h-6 transition-transform duration-300 text-[#fff]",
-                          currentAudioUrlRef.current && "group-hover:scale-110",
+                          currentAudioUrlRef.current && "group-hover:scale-110"
                         )}
                       />
                     )}
@@ -378,7 +378,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                         "transition-all duration-300 transform",
                         favoriteVoiceIds.includes(v.id)
                           ? "scale-110 animate-heartbeat text-red-500"
-                          : "scale-100 group-hover/fav:scale-125 text-gray-400",
+                          : "scale-100 group-hover/fav:scale-125 text-gray-400"
                       )}
                     >
                       {favoriteVoiceIds.includes(v.id) ? (

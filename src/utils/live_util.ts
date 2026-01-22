@@ -56,12 +56,12 @@ export const getUserWindowSize = (ratio: Ratio): Size => {
   } else if (ratio === Ratio.PORTRAIT) {
     return {
       width: 208,
-      height: 370
+      height: 370,
     };
   } else {
     return {
       width: 322,
-      height: 322
+      height: 322,
     };
   }
 };

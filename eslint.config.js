@@ -17,14 +17,14 @@ export default [
   reactHooks.configs["recommended-latest"],
   reactRefresh.configs.vite, // 该预设内部已注册 react-refresh 插件
   prettierConfig,
-  // 项目核心配置
+  // 核心配置
   {
     files: ["**/*.{ts,tsx}"],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       "prettier": prettierPlugin,
       "react": reactPlugin, // 仅保留无重复的插件注册
-      // 关键：删除下面这行重复注册的 react-refresh，解决报错
+
       // "react-refresh": reactRefresh,
     },
     languageOptions: {
@@ -44,6 +44,8 @@ export default [
       "react-refresh/only-export-components": "warn",
       "quotes": "off",
       "@typescript-eslint/quotes": "off",
+      "comma-dangle": "off",
+      "@typescript-eslint/comma-dangle": "off",
 
       "react/jsx-wrap-multilines": [
         "error",
@@ -58,7 +60,7 @@ export default [
         }
       ],
       "react/jsx-indent": ["error", 2, { "indentLogicalExpressions": true }],
-      "react/jsx-indent-props": ["error", 2],
+      "react/jsx-indent-props": ["error", 2]
     }
   }
 ];

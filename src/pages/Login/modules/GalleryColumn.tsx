@@ -31,7 +31,7 @@ const GalleryColumn = ({ col, colIdx }: GalleryColumnProps) => {
                   className="relative cursor-pointer hover:scale-105 transition-all duration-300"
                   style={{
                     width: `${COLUMN_WIDTH}px`,
-                    aspectRatio: "9 / 16"
+                    aspectRatio: "9 / 16",
                   }}
                 >
                   <img

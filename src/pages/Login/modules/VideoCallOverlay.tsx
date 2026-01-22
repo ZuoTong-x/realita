@@ -28,7 +28,7 @@ const VideoCallOverlay = ({
   userVideoRef,
   onToggleCamera,
   onToggleMute,
-  onStartCamera
+  onStartCamera,
 }: VideoCallOverlayProps) => {
   const { t } = useTranslation();
   return (
@@ -56,7 +56,7 @@ const VideoCallOverlay = ({
             className="relative"
             style={{
               width: `${USER_VIDEO_WIDTH}px`,
-              aspectRatio: "9 / 16"
+              aspectRatio: "9 / 16",
             }}
           >
             {userStream ? (

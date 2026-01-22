@@ -40,7 +40,7 @@ const DropdownMenu = <T,>({
   renderMenuItem,
   renderSelectedIcon,
   buttonClassName,
-  disabled
+  disabled,
 }: DropdownMenuProps<T>) => {
   const [open, setOpen] = useState(false);
   const isDisabled = disabled ?? list.length <= 1;
@@ -57,7 +57,9 @@ const DropdownMenu = <T,>({
     if (renderMenuItem) {
       return {
         key,
-        label: renderMenuItem(item, itemIsSelected, () => handleItemClick(item))
+        label: renderMenuItem(item, itemIsSelected, () =>
+          handleItemClick(item)
+        ),
       };
     }
 
@@ -88,7 +90,7 @@ const DropdownMenu = <T,>({
                     "linear-gradient(270deg, #29E4F1 0%, #FFBC36 100%)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent"
+                  WebkitTextFillColor: "transparent",
                 }}
               >
                 new
@@ -97,7 +99,7 @@ const DropdownMenu = <T,>({
           )}
           {renderSelectedIcon && renderSelectedIcon(item, itemIsSelected)}
         </div>
-      )
+      ),
     };
   });
 
@@ -140,7 +142,7 @@ const DropdownMenu = <T,>({
                 background: "linear-gradient(270deg, #29E4F1 0%, #FFBC36 100%)",
                 backgroundClip: "text",
                 WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
+                WebkitTextFillColor: "transparent",
               }}
             >
               new
