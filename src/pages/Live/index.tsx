@@ -5,7 +5,7 @@ import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
-import IconLoading from "@/assets/svg/IconLoading.svg?react";
+// import IconLoading from "@/assets/svg/IconLoading.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
 import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
@@ -239,7 +239,7 @@ const LivePage = () => {
                   />
                 </div>
               )}
-              <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" />
+              {/* <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" /> */}
             </div>
           )}
         </div>
