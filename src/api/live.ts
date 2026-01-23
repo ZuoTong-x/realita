@@ -33,8 +33,10 @@ export const sendStreamHeartbeat = async (
 export const stopStream = async (
   stream_id: string
 ): Promise<ApiResponse<null>> => {
-  const response = await request.delete<ApiResponse<null>>(
-    `/stream /${stream_id}`
-  );
+  const response = await request.delete<ApiResponse<null>>(`/stream`, {
+    data: {
+      stream_id,
+    },
+  });
   return response.data;
 };
