@@ -8,7 +8,7 @@ import IconShare from "@/assets/svg/IconShare.svg?react";
 import { Ratio } from "@/types/Live";
 import { Divider } from "antd";
 import { useTranslation } from "react-i18next";
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect } from "react";
 import CommonButton from "@/components/Common/Button";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import type { CharacterInfo } from "@/types/Character";
@@ -30,7 +30,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   open,
   onClose,
   characterId,
-  ratio,
+  // ratio,
   onEdit,
   onDelete,
 }) => {
