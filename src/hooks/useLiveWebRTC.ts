@@ -1,25 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { App } from "antd";
-
-export type LiveStatus = "idle" | "connecting" | "connected" | "error";
+export type LiveStatus = "connecting" | "connected" | "finished" | "error";
 
 export function useWebRTCWhipWhep({
-  whipUrl,
-  whepUrl,
   preview,
   audioOnly = false,
   remoteVideoRef, // 新增：用于播放远程流的视频元素 ref
   localStream, // 新增：直接传入本地流（优先级最高）
+  onSuccess, // 新增：连接成功后的回调
 }: {
-  whipUrl?: string | null;
-  whepUrl?: string | null;
   preview?: HTMLVideoElement | null;
   audioOnly?: boolean;
   remoteVideoRef?: HTMLVideoElement | null; // 新增
   localStream?: MediaStream | null; // 新增
+  onSuccess?: () => void; // 新增
 }) {
-  const { message } = App.useApp();
-  const [status, setStatus] = useState<LiveStatus>("idle");
+  const [status, setStatus] = useState<LiveStatus>("connecting");
   const [error, setError] = useState<string | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
@@ -54,17 +49,7 @@ export function useWebRTCWhipWhep({
    *  释放所有资源
    *  -------------------------*/
   const stop = useCallback(async () => {
-    setStatus("idle");
-
-    // 删除 WHIP 资源
-    if (resourceUrlRef.current) {
-      try {
-        await fetch(resourceUrlRef.current, { method: "DELETE" });
-      } catch {
-        message.error("删除 whip 资源失败");
-      }
-    }
-
+    setStatus("finished");
     // 停止本地轨道
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
 
@@ -85,7 +70,7 @@ export function useWebRTCWhipWhep({
     // 清除视频元素源（新增）
     if (preview) preview.srcObject = null;
     if (remoteVideoRef) remoteVideoRef.srcObject = null;
-  }, [message, preview, remoteVideoRef]);
+  }, [preview, remoteVideoRef]);
 
   /** --------------------------
    *  启动拉流（WHEP）
@@ -105,7 +90,6 @@ export function useWebRTCWhipWhep({
       // 预先挂载到远端 <video>，但先不强制播放，等待有轨道时再触发
       if (remoteVideoRef) {
         remoteVideoRef.srcObject = inbound;
-        // 初始静音以绕过自动播放限制，但后续由页面控制
         remoteVideoRef.muted = false;
         remoteVideoRef.playsInline = true;
       }
@@ -125,16 +109,25 @@ export function useWebRTCWhipWhep({
 
       const resp = await fetch(url, {
         method: "POST",
+        mode: "cors",
+        credentials: "omit",
         headers: {
           "Content-Type": "application/sdp",
-          Accept: "application/sdp",
+          Accept: "*/*",
         },
         body: offer.sdp!,
       });
 
-      if (!resp.ok) throw new Error("WHEP 请求失败: " + resp.status);
+      if (!resp.ok) {
+        throw new Error("WHEP 请求失败: " + resp.status);
+      }
 
       const answerSdp = await resp.text();
+
+      if (!answerSdp || answerSdp.length === 0) {
+        throw new Error("WHEP 响应为空");
+      }
+
       await pc.setRemoteDescription({
         type: "answer",
         sdp: answerSdp,
@@ -142,17 +135,14 @@ export function useWebRTCWhipWhep({
 
       // 新增：错误处理和连接状态监听
       pc.onconnectionstatechange = () => {
-        console.log("WHEP PC 状态:", pc.connectionState);
         if (pc.connectionState === "failed") {
           setError("拉流连接失败");
           setStatus("error");
         }
         if (pc.connectionState === "connected") {
           if (remoteVideoRef) {
-            // 不强制设置 muted，让页面通过 prop 控制
-            // 初始静音是为了绕过自动播放限制，连接成功后页面可以控制
             remoteVideoRef.play().catch(() => {
-              console.log("播放失败了");
+              // 忽略播放错误
             });
           }
         }
@@ -198,9 +188,8 @@ export function useWebRTCWhipWhep({
       });
       whipPcRef.current = pc;
 
-      // 添加连接状态监听（新增）
+      // 添加连接状态监听
       pc.onconnectionstatechange = () => {
-        console.log("WHIP PC 状态:", pc.connectionState);
         if (pc.connectionState === "failed") {
           setError("推流连接失败");
           setStatus("error");
@@ -216,22 +205,31 @@ export function useWebRTCWhipWhep({
 
       const resp = await fetch(url, {
         method: "POST",
+        mode: "cors",
+        credentials: "omit",
         headers: {
           "Content-Type": "application/sdp",
-          Accept: "application/sdp",
+          Accept: "*/*",
         },
-        body: offer.sdp ?? "",
+        body: offer.sdp!,
       });
 
-      if (!resp.ok) throw new Error("WHIP 请求失败: " + resp.status);
+      if (!resp.ok) {
+        throw new Error("WHIP 请求失败: " + resp.status);
+      }
 
       const location = resp.headers.get("Location");
       if (location) {
-        // 兼容相对路径 Location
+        // 兼容相对路径 Location，转换为完整 URL
         resourceUrlRef.current = new URL(location, url).href;
       }
 
       const answerSdp = await resp.text();
+
+      if (!answerSdp || answerSdp.length === 0) {
+        throw new Error("WHIP 响应为空");
+      }
+
       await pc.setRemoteDescription({
         type: "answer",
         sdp: answerSdp,
@@ -243,23 +241,29 @@ export function useWebRTCWhipWhep({
   /** --------------------------
    *  启动整个直播流程
    *  -------------------------*/
-  const start = useCallback(async () => {
-    try {
-      setError(null);
-      setStatus("connecting");
+  const start = useCallback(
+    async (whipUrl: string, whepUrl: string) => {
+      try {
+        setError(null);
+        setStatus("connecting");
 
-      // 推流先启动，再拉流（更合理的顺序）
-      if (whipUrl) await startWhip(whipUrl);
-      if (whepUrl) await startWhep(whepUrl);
+        // 先拉流，再推流
+        if (whipUrl) await startWhip(whipUrl);
+        if (whepUrl) await startWhep(whepUrl);
 
-      setStatus("connected");
-    } catch (err: unknown) {
-      const error = err as Error;
-      setError(error.message);
-      setStatus("error");
-      await stop();
-    }
-  }, [whipUrl, whepUrl, startWhip, startWhep, stop]);
+        setStatus("connected");
+
+        // 连接成功后执行回调
+        onSuccess?.();
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message);
+        setStatus("error");
+        await stop();
+      }
+    },
+    [startWhep, startWhip, onSuccess, stop]
+  );
 
   /** --------------------------
    *  自动清理

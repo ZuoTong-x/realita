@@ -23,11 +23,20 @@ export default defineConfig(() => {
       host: "0.0.0.0", // 监听所有网卡
       port: 8080,
       proxy: {
-        "/oss-proxy": {
-          target: "http://aoss.cn-sh-01b.sensecoreapi-oss.cn",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/oss-proxy/, ""),
-        },
+        // "/whip-proxy": {
+        //   target: "https://srs-eip.video-chat.internal.light-ai.top:8848",
+        //   rewrite: (path) => path.replace(/^\/whip-proxy/, ""),
+        //   changeOrigin: true,
+        //   ws: true,
+        //   secure: false, // 如果是自签名证书，设置为 false
+        // },
+        // "/whep-proxy": {
+        //   target: "https://srs-eip.video-chat.internal.light-ai.top:8848",
+        //   rewrite: (path) => path.replace(/^\/whep-proxy/, ""),
+        //   changeOrigin: true,
+        //   ws: true,
+        //   secure: false, // 如果是自签名证书，设置为 false
+        // },
       },
     },
     optimizeDeps: {

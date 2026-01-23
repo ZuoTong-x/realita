@@ -1,34 +1,31 @@
-import { useSearchParams } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 import CommonButton from "@/components/Common/Button";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
-import IconCalling from "@/assets/svg/IconCalling.svg?react";
+
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
 import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
 import useDraggable from "@/hooks/useDraggable";
-
+import {
+  getAvailableStreams,
+  recordStreamStartTime,
+  sendStreamHeartbeat,
+  stopStream,
+} from "@/api";
 import { useTranslation } from "react-i18next";
-
+import type { StreamInfo } from "@/types";
 import { App, Modal } from "antd";
+import { useRequest } from "ahooks";
+import { useNavigate } from "react-router-dom";
+
 const LivePage = () => {
   const { message } = App.useApp();
-
-  const [searchParams] = useSearchParams();
-
-  const whipUrl = localStorage.getItem("whipUrl");
-  const whepUrl = localStorage.getItem("whepUrl");
-  const lightx2vTaskId = localStorage.getItem("lightx2vTaskId");
-  const bgImg = localStorage.getItem("bgImg");
-
-  const stream = searchParams.get("stream");
-
-  const { t, i18n } = useTranslation();
-
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   // 是否静音
   const [muted, setMuted] = useState<boolean>(false);
   // 控制摄像头窗口与底部按钮组显示
@@ -40,27 +37,59 @@ const LivePage = () => {
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
   const [permModalOpen, setPermModalOpen] = useState<boolean>(false);
-
+  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
+  const [streamInfoErrorModalOpen, setStreamInfoErrorModalOpen] =
+    useState<boolean>(false);
   const localPreviewRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
   const {
     start: startLive,
     stop: stopLive,
     status: liveStatus,
   } = useWebRTCWhipWhep({
-    whipUrl,
-    whepUrl,
     preview: localPreviewRef.current,
     audioOnly: !videoEnabled,
     remoteVideoRef: remoteVideoRef.current,
+    onSuccess: async () => {
+      await recordStreamStartTime(streamInfo!.stream_id);
+      run();
+      cancelGetStreamInfo();
+    },
   });
+  const getStreamInfo = useCallback(async () => {
+    cancelGetStreamInfo();
 
-  // 页面不再自动发起通话；仅在参数缺失时提示
-  useEffect(() => {
-    if (!whipUrl || !whepUrl || !lightx2vTaskId || !stream) {
-      message.error(i18n.t("live_lack_of_key_data"));
+    const streamInfo = await getAvailableStreams();
+    if (streamInfo.code === 200 && streamInfo.data) {
+      setStreamInfo(streamInfo.data);
+      if (
+        streamInfo.data.status === "ready" &&
+        streamInfo.data.whip_url &&
+        streamInfo.data.whep_url
+      ) {
+        try {
+          const constraints: MediaStreamConstraints = {
+            video: videoEnabled,
+            audio: true,
+          };
+          const local = await navigator.mediaDevices.getUserMedia(constraints);
+          if (localPreviewRef.current) {
+            localPreviewRef.current.srcObject = local;
+
+            await localPreviewRef.current.play().catch(() => {});
+          }
+          // 发起通话（WHIP/WHEP）
+          await startLive(streamInfo.data.whip_url, streamInfo.data.whep_url);
+        } catch {
+          setPermModalOpen(true);
+        }
+      }
+    } else {
+      setStreamInfoErrorModalOpen(true);
+      cancelGetStreamInfo();
     }
-  }, [whipUrl, whepUrl, lightx2vTaskId, stream, i18n, message]);
+  }, []);
 
   const characterRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -88,32 +117,20 @@ const LivePage = () => {
     if (liveStatus === "connected") {
       try {
         await stopLive();
+        await stopStream(streamInfo!.stream_id);
+        cancel();
       } finally {
         // 关闭本地预览
         const s = localPreviewRef.current?.srcObject as MediaStream | null;
         s?.getTracks().forEach((t) => t.stop());
         if (localPreviewRef.current) localPreviewRef.current.srcObject = null;
       }
-    } else {
-      try {
-        // 用户手势下请求权限并启动本地预览
-        const constraints: MediaStreamConstraints = {
-          video: videoEnabled,
-          audio: true,
-        };
-        const local = await navigator.mediaDevices.getUserMedia(constraints);
-        if (localPreviewRef.current) {
-          localPreviewRef.current.srcObject = local;
-
-          await localPreviewRef.current.play().catch(() => {});
-        }
-        // 发起通话（WHIP/WHEP）
-        await startLive();
-      } catch {
-        setPermModalOpen(true);
-      }
     }
   };
+  const sendStreamHeartbeatRequest = useCallback(async () => {
+    if (!streamInfo) return;
+    await sendStreamHeartbeat(streamInfo?.stream_id);
+  }, [streamInfo]);
 
   useEffect(() => {
     const onDblClick = () => setUiVisible((prev) => !prev);
@@ -128,6 +145,16 @@ const LivePage = () => {
     }
   }, [muted, liveStatus]);
 
+  const { run, cancel } = useRequest(sendStreamHeartbeatRequest, {
+    pollingInterval: 3000,
+    pollingErrorRetryCount: 3,
+    manual: true,
+  });
+  const { cancel: cancelGetStreamInfo } = useRequest(getStreamInfo, {
+    pollingInterval: 3000,
+    pollingErrorRetryCount: 3,
+  });
+
   return (
     <div
       className="relative w-full min-h-screen flex items-center justify-center"
@@ -136,44 +163,10 @@ const LivePage = () => {
         e.preventDefault();
         setUiVisible((prev) => !prev);
       }}
-      onTouchEnd={(e) => {
-        const touch = e.changedTouches && e.changedTouches[0];
-        if (!touch) return;
-        const now = Date.now();
-        const last = lastTapRef.current;
-        const isFast = last && now - last.time < 300;
-        const dx = last ? Math.abs(touch.clientX - last.x) : 0;
-        const dy = last ? Math.abs(touch.clientY - last.y) : 0;
-        const isNear = dx < 30 && dy < 30;
-        if (isFast && isNear) {
-          setUiVisible((prev) => !prev);
-          lastTapRef.current = null;
-        } else {
-          lastTapRef.current = {
-            time: now,
-            x: touch.clientX,
-            y: touch.clientY,
-          };
-        }
-      }}
     >
-      {/* Background layer */}
-      {bgImg ? (
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <img
-            src={bgImg}
-            alt="bg"
-            className="w-full h-full object-cover blur-md"
-          />
-          {/* 灰黑色模糊遮罩 */}
-          <div className="absolute inset-0 bg-black/40" />
-        </div>
-      ) : (
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="w-full h-full bg-gradient-to-r from-[#26babb]/20 to-[#f3e8cb]" />
-        </div>
-      )}
-
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="w-full h-full bg-gradient-to-r from-[#26babb]/20 to-[#f3e8cb]" />
+      </div>
       <div
         ref={characterRef}
         className="rounded-2xl relative w-screen h-screen"
@@ -181,7 +174,7 @@ const LivePage = () => {
         <div className="w-full h-full relative border-[2px] border-solid border-white rounded-2xl overflow-hidden">
           <video
             ref={remoteVideoRef}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover aspect-square"
             playsInline
             autoPlay
             muted={muted}
@@ -189,9 +182,7 @@ const LivePage = () => {
           />
           {liveStatus !== "connected" && (
             <div className="absolute inset-0 flex items-center justify-center font-bold text-2xl text-white/80">
-              {liveStatus === "idle" && t("live_idle")}
               {liveStatus === "connecting" && t("live_connecting")}
-              {/* {liveStatus === "connected" && t("live.calling")} */}
               {liveStatus === "error" && t("live_call_failed")}
             </div>
           )}
@@ -218,28 +209,23 @@ const LivePage = () => {
                 )}
               </span>
             </CommonButton>
-            <CommonButton
-              size="large"
-              className="h-24 px-0"
-              borderRadiusPx={54}
-              onClick={handleCall}
-            >
-              <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-5">
-                {/* {liveStatus === "connected" ? (
-                 
-                ) : (
-                 
+            {liveStatus === "connected" && (
+              <CommonButton
+                size="large"
+                className="h-24 px-0"
+                borderRadiusPx={54}
+                onClick={handleCall}
+              >
+                <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-5">
+                  {/* {liveStatus === "connecting" && (
+                  <IconLoading className="w-13 h-13 text-[#26babb] animate-spin" />
                 )} */}
-                {liveStatus === "idle" && (
-                  <IconCalling className="w-13 h-13 text-[#26babb]" />
-                )}
-                {liveStatus === "connecting" && "连接中"}
-                {liveStatus === "connected" && (
-                  <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
-                )}
-                {liveStatus === "error" && "连接失败"}
-              </span>
-            </CommonButton>
+                  {liveStatus === "connected" && (
+                    <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
+                  )}
+                </span>
+              </CommonButton>
+            )}
             <CommonButton
               size="large"
               className="h-20 px-0"
@@ -259,7 +245,6 @@ const LivePage = () => {
         )}
       </div>
 
-      {/* Draggable user window */}
       {userPos && uiVisible && (
         <div
           className="absolute cursor-move z-30"
@@ -305,9 +290,10 @@ const LivePage = () => {
               audio: true,
             };
             await navigator.mediaDevices.getUserMedia(constraints);
-
-            await startLive();
             setPermModalOpen(false);
+            // if (streamInfo && streamInfo.whip_url && streamInfo.whep_url) {
+            //   await startLive(streamInfo.whip_url, streamInfo.whep_url);
+            // }
           } catch (e) {
             message.error(t("live_permission_denied"));
           }
@@ -315,6 +301,20 @@ const LivePage = () => {
         onCancel={() => setPermModalOpen(false)}
       >
         <div className="text-[#3B3D2C]">{t("live_permission_desc")}</div>
+      </Modal>
+
+      <Modal
+        open={streamInfoErrorModalOpen}
+        centered
+        title={t("live_stream_info_error_title")}
+        okText={t("common_confirm")}
+        cancelButtonProps={{ style: { display: "none" } }}
+        maskClosable={false}
+        onOk={() => {
+          navigate(-1);
+        }}
+      >
+        <div className="text-[#3B3D2C]">{t("live_stream_info_error_desc")}</div>
       </Modal>
     </div>
   );

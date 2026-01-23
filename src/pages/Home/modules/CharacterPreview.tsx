@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { Modal } from "antd";
 import IconDelete from "@/assets/svg/IconDelete.svg?react";
@@ -13,18 +13,10 @@ import CommonButton from "@/components/Common/Button";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import type { CharacterInfo } from "@/types/Character";
 import { App } from "antd";
-import {
-  getCharacterInfo,
-  joinQueue,
-  getQueueStatus,
-  leaveQueue,
-  sendQueueHeartbeat,
-  deleteCharacter,
-  getAvailableStreams,
-} from "@/api";
-import type { QueueStatus } from "@/types/Character";
-import { useRequest } from "ahooks";
+import { getCharacterInfo, deleteCharacter } from "@/api";
 import { useNavigate } from "react-router-dom";
+import { useQueue } from "@/hooks/useQueue";
+import type { StreamInfo } from "@/types";
 
 type CharacterPreviewProps = {
   open: boolean;
@@ -45,11 +37,27 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   const { t } = useTranslation();
   const { message } = App.useApp();
   const navigate = useNavigate();
+  const queueModalRef = useRef<StreamInfo>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(
     null
   );
-  const [queueStatus, setQueueStatus] = useState<QueueStatus | null>(null);
-  const [isInQueue, setIsInQueue] = useState(false);
+  const [isQueueModalOpen, setIsQueueModalOpen] = useState(false);
+  const [isQueue, setIsQueue] = useState(false);
+  const {
+    isInQueue,
+    queueStatus,
+    handleJoinQueue,
+    handleLeaveQueue,
+    formatEstimateTime,
+  } = useQueue({
+    characterId,
+    onQueueComplete: (streamInfo, isQueue) => {
+      queueModalRef.current = streamInfo;
+      setIsQueue(isQueue);
+      setIsQueueModalOpen(true);
+    },
+    enabled: open,
+  });
 
   const frameClass = useMemo(() => {
     if (ratio === Ratio.LANDSCAPE) {
@@ -66,37 +74,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     if (ratio === Ratio.PORTRAIT) return 384; // 26rem
     return 576; // 36rem
   }, [ratio]);
-
-  const handleChat = async () => {
-    const res = await getQueueStatus();
-    if (res.code === 200) {
-      if (
-        res.data.number_of_users_ahead === null ||
-        res.data.number_of_users_ahead === null ||
-        res.data.expire_time === null
-      ) {
-        // 用户不在队列中
-        const queueRes = await joinQueue(characterId);
-        if (queueRes.code === 200) {
-          setIsInQueue(true);
-          setQueueStatus(queueRes.data);
-          message.success(t("queue_joined_queue"));
-          run();
-        } else {
-          message.error(queueRes.msg || t("queue_join_queue_failed"));
-        }
-      } else if (
-        res.data.number_of_users_ahead > 0 &&
-        res.data.estimate_time! > 0
-      ) {
-        setIsInQueue(true);
-        setQueueStatus(res.data);
-        run();
-      }
-    } else {
-      message.error(res.msg || t("queue_join_queue_failed"));
-    }
-  };
 
   const handleEdit = () => {
     if (characterInfo && onEdit) {
@@ -121,64 +98,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     }
   };
 
-  // 离开队列
-  const handleLeaveQueue = async () => {
-    const res = await leaveQueue();
-    if (res.code === 200) {
-      setIsInQueue(false);
-      setQueueStatus(null);
-      cancel();
-    }
-  };
-  const formatEstimateTime = (estimateTime: number) => {
-    if (estimateTime < 60) {
-      return estimateTime + t("queue_seconds");
-    } else {
-      return Math.ceil(estimateTime / 60) + t("queue_minutes");
-    }
-  };
-  const getUserQueueStatus = async () => {
-    const res = await getQueueStatus();
-    if (res.code === 200) {
-      if (
-        res.data.number_of_users_ahead === null ||
-        res.data.number_of_users_ahead === null ||
-        res.data.expire_time === null
-      ) {
-        // 用户不在队列中
-        message.info(t("queue_not_in_queue"));
-        cancel();
-      } else if (
-        res.data.number_of_users_ahead > 0 &&
-        res.data.estimate_time! > 0
-      ) {
-        setIsInQueue(true);
-        setQueueStatus(res.data);
-        if (res.data.expire_time < 3) {
-          await sendQueueHeartbeat();
-        }
-      } else {
-        // 排队完成 可以开始聊天
-
-        handleLeaveQueue();
-
-        setIsInQueue(false);
-        cancel();
-        const streamRes = await getAvailableStreams();
-        if (streamRes.code === 200) {
-          navigate(`/live/?stream=${streamRes.data.stream_id}`);
-        } else {
-          message.error(streamRes.msg || t("common_error"));
-        }
-      }
-    }
-  };
-  const { run, cancel } = useRequest(getUserQueueStatus, {
-    pollingInterval: 3000,
-    pollingErrorRetryCount: 3,
-    manual: true,
-  });
-
   const init = useCallback(async () => {
     const res = await getCharacterInfo(characterId);
     if (res.code === 200) {
@@ -189,150 +108,174 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
   useEffect(() => {
     if (open) {
       init();
-    } else {
-      cancel();
     }
-  }, [open, init, cancel]);
+  }, [open, init]);
 
   return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      centered
-      maskClosable={false}
-      width={modalWidth}
-      classNames={{
-        container: "rounded-2xl",
-      }}
-      styles={{
-        body: {
-          paddingTop: 16,
-        },
-      }}
-    >
-      <div className="w-full flex flex-col gap-4 items-center justify-start">
-        <div className="w-full flex items-center justify-center">
-          <div
-            className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden ${frameClass}`}
-          >
-            <img
-              src={characterInfo?.image.url}
-              alt="character"
-              className="w-full h-full object-contain"
-            />
+    <>
+      <Modal
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        centered
+        maskClosable={false}
+        width={modalWidth}
+        classNames={{
+          container: "rounded-2xl",
+        }}
+        styles={{
+          body: {
+            paddingTop: 16,
+          },
+        }}
+      >
+        <div className="w-full flex flex-col gap-4 items-center justify-start">
+          <div className="w-full flex items-center justify-center">
+            <div
+              className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden ${frameClass}`}
+            >
+              <img
+                src={characterInfo?.image.url}
+                alt="character"
+                className="w-full h-full object-contain"
+              />
 
-            {/* 排队蒙层 */}
-            {isInQueue && queueStatus && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-between gap-4 text-white">
-                <div className="flex flex-col items-center justify-center gap-2 flex-1 mt-4">
-                  <div className="text-2xl font-bold">
-                    {t("queue_in_queue")}
-                  </div>
-
-                  {queueStatus.number_of_users_ahead !== null && (
-                    <div className="flex flex-col items-center gap-2 ">
-                      <div className="text-lg">
-                        {t("queue_users_ahead")}:{" "}
-                        {queueStatus.number_of_users_ahead} {t("queue_users")}
-                      </div>
-
-                      {queueStatus.estimate_time !== null && (
-                        <div className="text-base opacity-90">
-                          {t("queue_estimate_time")}:{" "}
-                          {formatEstimateTime(queueStatus.estimate_time)}
-                        </div>
-                      )}
+              {/* 排队蒙层 */}
+              {isInQueue && queueStatus && (
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-between gap-4 text-white">
+                  <div className="flex flex-col items-center justify-center gap-2 flex-1 mt-4">
+                    <div className="text-2xl font-bold">
+                      {t("queue_in_queue")}
                     </div>
-                  )}
+
+                    {queueStatus.number_of_users_ahead !== null && (
+                      <div className="flex flex-col items-center gap-2 ">
+                        <div className="text-lg">
+                          {t("queue_users_ahead")}:{" "}
+                          {queueStatus.number_of_users_ahead} {t("queue_users")}
+                        </div>
+
+                        {queueStatus.estimate_time !== null && (
+                          <div className="text-base opacity-90">
+                            {t("queue_estimate_time")}:{" "}
+                            {formatEstimateTime(queueStatus.estimate_time)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <CommonButton
+                    size="large"
+                    className="h-10 px-0 hover:scale-110 transition-transform duration-300 mt-4 mb-4"
+                    borderRadiusPx={54}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLeaveQueue();
+                    }}
+                  >
+                    <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
+                      {t("queue_leave_queue")}
+                    </span>
+                  </CommonButton>
                 </div>
-                <CommonButton
-                  size="large"
-                  className="h-10 px-0 hover:scale-110 transition-transform duration-300 mt-4 mb-4"
-                  borderRadiusPx={54}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLeaveQueue();
-                  }}
-                >
-                  <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
-                    {t("queue_leave_queue")}
-                  </span>
-                </CommonButton>
-              </div>
-            )}
+              )}
 
-            {/* Chat 按钮 */}
-            {!isInQueue && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                <CommonButton
-                  size="large"
-                  className="h-10 px-0 hover:scale-110 transition-transform duration-300"
-                  borderRadiusPx={54}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleChat();
-                  }}
-                  disabled={isInQueue}
-                >
-                  <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
-                    {isInQueue ? t("queue_joining") : t("common_chat")}
-                    {!isInQueue && <IconChat className="w-6 h-4" />}
-                  </span>
-                </CommonButton>
-              </div>
-            )}
+              {/* Chat 按钮 */}
+              {!isInQueue && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center">
+                  <CommonButton
+                    size="large"
+                    className="h-10 px-0 hover:scale-110 transition-transform duration-300"
+                    borderRadiusPx={54}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleJoinQueue();
+                    }}
+                    disabled={isInQueue}
+                  >
+                    <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
+                      {isInQueue ? t("queue_joining") : t("common_chat")}
+                      {!isInQueue && <IconChat className="w-6 h-4" />}
+                    </span>
+                  </CommonButton>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="w-full flex flex-col items-center justify-center gap-4">
-          <div className="text-xl font-medium text-[#3B3D2C]">
-            {t("character_generated_success")}
-          </div>
-          <div className="w-full flex items-center justify-center gap-1">
-            <CommonButton
-              className="h-10 w-10 p-0 bg-white/80 hover:scale-110 transition-transform duration-300 "
-              style={{ border: "2px solid #0000001A" }}
-              borderRadiusPx={54}
-              aria-label="edit-character"
-              onClick={() => {
-                handleEdit();
-              }}
-            >
-              <IconEdit className="w-4 h-4" />
-            </CommonButton>
-            <CommonButton
-              className="h-10 w-10 p-0 bg-white/90 hover:scale-110 transition-transform duration-300"
-              style={{ border: "2px solid #0000001A" }}
-              borderRadiusPx={54}
-              aria-label="share-character"
-              onClick={() => {
-                handleShare();
-              }}
-            >
-              <IconShare className="w-4 h-4" />
-            </CommonButton>
-            {characterInfo?.number_of_likes === null && (
-              <Divider orientation="vertical" />
-            )}
-            {/* 只有用户创建的才显示删除按钮 */}
-            {characterInfo?.number_of_likes === null && (
+          <div className="w-full flex flex-col items-center justify-center gap-4">
+            <div className="text-xl font-medium text-[#3B3D2C]">
+              {t("character_generated_success")}
+            </div>
+            <div className="w-full flex items-center justify-center gap-1">
               <CommonButton
-                className="h-10 w-10 p-0 bg-white/80 hover:scale-110 transition-transform duration-300"
+                className="h-10 w-10 p-0 bg-white/80 hover:scale-110 transition-transform duration-300 "
                 style={{ border: "2px solid #0000001A" }}
                 borderRadiusPx={54}
-                aria-label="delete-character"
+                aria-label="edit-character"
                 onClick={() => {
-                  handleDelete();
+                  handleEdit();
                 }}
               >
-                <IconDelete className="w-4 h-4 " />
+                <IconEdit className="w-4 h-4" />
               </CommonButton>
-            )}
+              <CommonButton
+                className="h-10 w-10 p-0 bg-white/90 hover:scale-110 transition-transform duration-300"
+                style={{ border: "2px solid #0000001A" }}
+                borderRadiusPx={54}
+                aria-label="share-character"
+                onClick={() => {
+                  handleShare();
+                }}
+              >
+                <IconShare className="w-4 h-4" />
+              </CommonButton>
+              {characterInfo?.number_of_likes === null && (
+                <Divider orientation="vertical" />
+              )}
+              {/* 只有用户创建的才显示删除按钮 */}
+              {characterInfo?.number_of_likes === null && (
+                <CommonButton
+                  className="h-10 w-10 p-0 bg-white/80 hover:scale-110 transition-transform duration-300"
+                  style={{ border: "2px solid #0000001A" }}
+                  borderRadiusPx={54}
+                  aria-label="delete-character"
+                  onClick={() => {
+                    handleDelete();
+                  }}
+                >
+                  <IconDelete className="w-4 h-4 " />
+                </CommonButton>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+      <Modal
+        open={isQueueModalOpen}
+        onCancel={() => {
+          handleLeaveQueue();
+          setIsQueueModalOpen(false);
+        }}
+        onOk={() => {
+          navigate(`/live/?stream=${queueModalRef.current?.stream_id}`);
+        }}
+        maskClosable={false}
+        cancelText={t("common_cancel")}
+        okText={t("common_confirm")}
+        centered
+      >
+        {isQueue ? (
+          <div>
+            <div>{t("live_character_ready")}</div>
+          </div>
+        ) : (
+          <div>
+            <div>{t("live_continue_call")}</div>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 };
 
