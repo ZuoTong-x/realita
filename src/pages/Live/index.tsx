@@ -30,10 +30,6 @@ const LivePage = () => {
   const [muted, setMuted] = useState<boolean>(false);
   // 控制摄像头窗口与底部按钮组显示
   const [uiVisible, setUiVisible] = useState<boolean>(true);
-  // 双击/双指触控检测
-  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(
-    null
-  );
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
   const [permModalOpen, setPermModalOpen] = useState<boolean>(false);
