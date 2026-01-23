@@ -5,7 +5,7 @@ import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
-
+import IconLoading from "@/assets/svg/IconLoading.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
 import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
@@ -35,12 +35,12 @@ const LivePage = () => {
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
   const [permModalOpen, setPermModalOpen] = useState<boolean>(false);
-  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
+
   const [streamInfoErrorModalOpen, setStreamInfoErrorModalOpen] =
     useState<boolean>(false);
-  const localPreviewRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-
+  const localPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const streamInfo = useRef<StreamInfo | null>(null);
   // 视频盒子大小（取宽高中较小值的80%）
   const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
 
@@ -49,23 +49,19 @@ const LivePage = () => {
     stop: stopLive,
     status: liveStatus,
   } = useWebRTCWhipWhep({
-    preview: localPreviewRef.current,
+    preview: localPreviewRef,
     audioOnly: !videoEnabled,
-    remoteVideoRef: remoteVideoRef.current,
-    onSuccess: async () => {
-      await recordStreamStartTime(streamInfo!.stream_id);
-      run();
-      cancelGetStreamInfo();
-    },
+    remoteVideoRef: remoteVideoRef,
+    onSuccess: () => handleStartLiveSuccess(),
   });
   const getStreamInfo = useCallback(async () => {
-    const streamInfo = await getAvailableStreams();
-    if (streamInfo.code === 200 && streamInfo.data) {
-      setStreamInfo(streamInfo.data);
+    const res = await getAvailableStreams();
+    if (res.code === 200 && res.data) {
+      streamInfo.current = res.data;
       if (
-        streamInfo.data.status === "ready" &&
-        streamInfo.data.whip_url &&
-        streamInfo.data.whep_url
+        res.data.status === "ready" &&
+        res.data.whip_url &&
+        res.data.whep_url
       ) {
         try {
           const constraints: MediaStreamConstraints = {
@@ -79,7 +75,7 @@ const LivePage = () => {
             await localPreviewRef.current.play().catch(() => {});
           }
           // 发起通话（WHIP/WHEP）
-          await startLive(streamInfo.data.whip_url, streamInfo.data.whep_url);
+          await startLive(res.data.whip_url, res.data.whep_url);
         } catch {
           setPermModalOpen(true);
         }
@@ -89,6 +85,13 @@ const LivePage = () => {
       cancelGetStreamInfo();
     }
   }, []);
+
+  const handleStartLiveSuccess = async () => {
+    console.log("handleStartLiveSuccess", streamInfo);
+    await recordStreamStartTime(streamInfo.current!.stream_id);
+    run();
+    cancelGetStreamInfo();
+  };
 
   const characterRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -128,8 +131,9 @@ const LivePage = () => {
     if (liveStatus === "connected") {
       try {
         await stopLive();
-        await stopStream(streamInfo!.stream_id);
+        await stopStream(streamInfo.current!.stream_id);
         cancel();
+        navigate(-1);
       } finally {
         // 关闭本地预览
         const s = localPreviewRef.current?.srcObject as MediaStream | null;
@@ -138,10 +142,16 @@ const LivePage = () => {
       }
     }
   };
-  const sendStreamHeartbeatRequest = useCallback(async () => {
-    if (!streamInfo) return;
-    await sendStreamHeartbeat(streamInfo?.stream_id);
-  }, [streamInfo]);
+  const sendStreamHeartbeatRequest = async () => {
+    if (!streamInfo.current) return;
+    const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
+    if (res.code !== 200) {
+      stopLive();
+      stopStream(streamInfo.current.stream_id);
+      cancelGetStreamInfo();
+      setStreamInfoErrorModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     const onDblClick = () => setUiVisible((prev) => !prev);
@@ -201,9 +211,19 @@ const LivePage = () => {
             height: videoBoxSize,
           }}
         >
-          {liveStatus !== "connected" ? (
-            // 未连接状态：灰色蒙版 + 小正方形图片
-            <div className="w-full h-full bg-[#000000]/60 backdrop-blur-sm flex items-center justify-center">
+          {/* 拉流视频 - 一直存在 */}
+          <video
+            ref={remoteVideoRef}
+            className="w-full h-full object-cover"
+            playsInline
+            autoPlay
+            muted={muted}
+            controls={false}
+          />
+
+          {/* 未连接状态：灰色蒙版 + 小正方形图片 */}
+          {liveStatus !== "connected" && (
+            <div className="absolute inset-0 bg-[#000000]/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
               {bgImg && (
                 <div
                   className="rounded-lg overflow-hidden"
@@ -219,17 +239,8 @@ const LivePage = () => {
                   />
                 </div>
               )}
+              <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" />
             </div>
-          ) : (
-            // 连接状态：显示拉流视频
-            <video
-              ref={remoteVideoRef}
-              className="w-full h-full object-cover"
-              playsInline
-              autoPlay
-              muted={muted}
-              controls={false}
-            />
           )}
         </div>
 

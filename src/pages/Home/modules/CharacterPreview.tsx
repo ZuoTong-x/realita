@@ -51,40 +51,41 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     formatEstimateTime,
   } = useQueue({
     characterId,
-    onQueueComplete: (streamInfo, isQueue) => {
-      queueModalRef.current = streamInfo;
-      setIsQueue(isQueue);
-      setIsQueueModalOpen(true);
-      localStorage.setItem(
-        `${streamInfo.stream_id}_bgImg`,
-        characterInfo!.image.url
-      );
-    },
+    onQueueComplete: (streamInfo, isQueue) =>
+      handleQueueComplete(streamInfo, isQueue),
     enabled: open,
   });
 
-  const frameClass = useMemo(() => {
-    if (ratio === Ratio.LANDSCAPE) {
-      return "w-full max-w-full aspect-[16/9]";
-    }
-    if (ratio === Ratio.PORTRAIT) {
-      return "w-[24rem] max-w-full aspect-[9/16]";
-    }
-    return "w-full max-w-full aspect-square";
-  }, [ratio]);
+  // const frameClass = useMemo(() => {
+  //   if (ratio === Ratio.LANDSCAPE) {
+  //     return "w-full max-w-full aspect-[16/9]";
+  //   }
+  //   if (ratio === Ratio.PORTRAIT) {
+  //     return "w-[24rem] max-w-full aspect-[9/16]";
+  //   }
+  //   return "w-full max-w-full aspect-square";
+  // }, [ratio]);
 
-  const modalWidth = useMemo(() => {
-    if (ratio === Ratio.LANDSCAPE) return 896; // 56rem
-    if (ratio === Ratio.PORTRAIT) return 384; // 26rem
-    return 576; // 36rem
-  }, [ratio]);
+  // const modalWidth = useMemo(() => {
+  //   if (ratio === Ratio.LANDSCAPE) return 896; // 56rem
+  //   if (ratio === Ratio.PORTRAIT) return 384; // 26rem
+  //   return 576; // 36rem
+  // }, [ratio]);
 
   const handleEdit = () => {
     if (characterInfo && onEdit) {
       onEdit(characterInfo);
     }
   };
-
+  const handleQueueComplete = (streamInfo: StreamInfo, isQueue: boolean) => {
+    queueModalRef.current = streamInfo;
+    setIsQueue(isQueue);
+    setIsQueueModalOpen(true);
+    localStorage.setItem(
+      `${streamInfo.stream_id}_bgImg`,
+      characterInfo!.image.url
+    );
+  };
   const handleShare = () => {
     const baseUrl = window.location.origin;
     const url = baseUrl + "?characterId=" + characterId;
@@ -123,25 +124,25 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
         footer={null}
         centered
         maskClosable={false}
-        width={modalWidth}
+        width={527}
         classNames={{
           container: "rounded-2xl",
         }}
         styles={{
           body: {
-            paddingTop: 16,
+            padding: 0,
           },
         }}
       >
         <div className="w-full flex flex-col gap-4 items-center justify-start">
           <div className="w-full flex items-center justify-center">
             <div
-              className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden ${frameClass}`}
+              className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden w-[487px] h-[653px]`}
             >
               <img
                 src={characterInfo?.image.url}
                 alt="character"
-                className="w-full h-full object-contain"
+                className="w-full object-contain"
               />
 
               {/* 排队蒙层 */}

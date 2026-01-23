@@ -8,9 +8,9 @@ export function useWebRTCWhipWhep({
   localStream, // 新增：直接传入本地流（优先级最高）
   onSuccess, // 新增：连接成功后的回调
 }: {
-  preview?: HTMLVideoElement | null;
+  preview?: React.RefObject<HTMLVideoElement | null>;
   audioOnly?: boolean;
-  remoteVideoRef?: HTMLVideoElement | null; // 新增
+  remoteVideoRef?: React.RefObject<HTMLVideoElement | null>; // 新增
   localStream?: MediaStream | null; // 新增
   onSuccess?: () => void; // 新增
 }) {
@@ -68,8 +68,9 @@ export function useWebRTCWhipWhep({
     setRemoteStream(null);
 
     // 清除视频元素源（新增）
-    if (preview) preview.srcObject = null;
-    if (remoteVideoRef) remoteVideoRef.srcObject = null;
+    if (preview && preview.current) preview.current.srcObject = null;
+    if (remoteVideoRef && remoteVideoRef.current)
+      remoteVideoRef.current.srcObject = null;
   }, [preview, remoteVideoRef]);
 
   /** --------------------------
@@ -88,10 +89,10 @@ export function useWebRTCWhipWhep({
       setRemoteStream(inbound);
 
       // 预先挂载到远端 <video>，但先不强制播放，等待有轨道时再触发
-      if (remoteVideoRef) {
-        remoteVideoRef.srcObject = inbound;
-        remoteVideoRef.muted = false;
-        remoteVideoRef.playsInline = true;
+      if (remoteVideoRef && remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = inbound;
+        remoteVideoRef.current.muted = false;
+        remoteVideoRef.current.playsInline = true;
       }
 
       pc.ontrack = (ev) => {
@@ -140,8 +141,8 @@ export function useWebRTCWhipWhep({
           setStatus("error");
         }
         if (pc.connectionState === "connected") {
-          if (remoteVideoRef) {
-            remoteVideoRef.play().catch(() => {
+          if (remoteVideoRef && remoteVideoRef.current) {
+            remoteVideoRef.current.play().catch(() => {
               // 忽略播放错误
             });
           }
@@ -160,20 +161,24 @@ export function useWebRTCWhipWhep({
       let stream: MediaStream | null = null;
       if (localStream && localStream.getTracks().length > 0) {
         stream = localStream;
-      } else if (preview && preview.srcObject instanceof MediaStream) {
-        stream = preview.srcObject as MediaStream;
+      } else if (
+        preview &&
+        preview.current &&
+        preview.current.srcObject instanceof MediaStream
+      ) {
+        stream = preview.current.srcObject as MediaStream;
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
           video: !audioOnly,
           audio: true,
         });
         // 如果提供了预览元素但尚未绑定，则绑定并尝试播放
-        if (preview && !preview.srcObject) {
-          preview.srcObject = stream;
-          preview.muted = true;
-          preview.playsInline = true as unknown as boolean;
+        if (preview && preview.current && !preview.current.srcObject) {
+          preview.current.srcObject = stream;
+          preview.current.muted = true;
+          preview.current.playsInline = true as unknown as boolean;
           try {
-            await preview.play();
+            await preview.current.play();
           } catch {
             /* ignore autoplay errors */
           }
