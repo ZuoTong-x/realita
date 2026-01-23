@@ -247,9 +247,11 @@ export function useWebRTCWhipWhep({
         setError(null);
         setStatus("connecting");
 
-        // 先拉流，再推流
-        if (whipUrl) await startWhip(whipUrl);
-        if (whepUrl) await startWhep(whepUrl);
+        // 并行启动推流和拉流
+        await Promise.all([
+          whipUrl ? startWhip(whipUrl) : Promise.resolve(),
+          whepUrl ? startWhep(whepUrl) : Promise.resolve(),
+        ]);
 
         setStatus("connected");
 

@@ -55,6 +55,10 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       queueModalRef.current = streamInfo;
       setIsQueue(isQueue);
       setIsQueueModalOpen(true);
+      localStorage.setItem(
+        `${streamInfo.stream_id}_bgImg`,
+        characterInfo!.image.url
+      );
     },
     enabled: open,
   });

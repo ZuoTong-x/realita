@@ -26,6 +26,8 @@ const LivePage = () => {
   const { message } = App.useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const bgImg = localStorage.getItem("bgImg");
+
   // 是否静音
   const [muted, setMuted] = useState<boolean>(false);
   // 控制摄像头窗口与底部按钮组显示
@@ -38,6 +40,9 @@ const LivePage = () => {
     useState<boolean>(false);
   const localPreviewRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  // 视频盒子大小（取宽高中较小值的80%）
+  const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
 
   const {
     start: startLive,
@@ -54,8 +59,6 @@ const LivePage = () => {
     },
   });
   const getStreamInfo = useCallback(async () => {
-    cancelGetStreamInfo();
-
     const streamInfo = await getAvailableStreams();
     if (streamInfo.code === 200 && streamInfo.data) {
       setStreamInfo(streamInfo.data);
@@ -109,6 +112,18 @@ const LivePage = () => {
     return () => window.cancelAnimationFrame(id);
   }, []);
 
+  // 计算视频盒子大小
+  useEffect(() => {
+    const calculateVideoBoxSize = () => {
+      const minDimension = Math.min(window.innerWidth, window.innerHeight);
+      setVideoBoxSize(minDimension * 0.8);
+    };
+
+    calculateVideoBoxSize();
+    window.addEventListener("resize", calculateVideoBoxSize);
+    return () => window.removeEventListener("resize", calculateVideoBoxSize);
+  }, []);
+
   const handleCall = async () => {
     if (liveStatus === "connected") {
       try {
@@ -160,27 +175,61 @@ const LivePage = () => {
         setUiVisible((prev) => !prev);
       }}
     >
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-r from-[#26babb]/20 to-[#f3e8cb]" />
-      </div>
+      {bgImg ? (
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <img
+            src={bgImg}
+            alt="bg"
+            className="w-full h-full object-cover blur-md"
+          />
+          {/* 灰黑色模糊遮罩 */}
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+      ) : (
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="w-full h-full bg-gradient-to-r from-[#26babb]/20 to-[#f3e8cb]" />
+        </div>
+      )}
       <div
         ref={characterRef}
-        className="rounded-2xl relative w-screen h-screen"
+        className="flex items-center justify-center w-full h-full"
       >
-        <div className="w-full h-full relative border-[2px] border-solid border-white rounded-2xl overflow-hidden">
-          <video
-            ref={remoteVideoRef}
-            className="absolute inset-0 w-full h-full object-cover aspect-square"
-            playsInline
-            autoPlay
-            muted={muted}
-            controls={false}
-          />
-          {liveStatus !== "connected" && (
-            <div className="absolute inset-0 flex items-center justify-center font-bold text-2xl text-white/80">
-              {liveStatus === "connecting" && t("live_connecting")}
-              {liveStatus === "error" && t("live_call_failed")}
+        <div
+          className="relative border-[2px] border-solid border-white rounded-2xl overflow-hidden"
+          style={{
+            width: videoBoxSize,
+            height: videoBoxSize,
+          }}
+        >
+          {liveStatus !== "connected" ? (
+            // 未连接状态：灰色蒙版 + 小正方形图片
+            <div className="w-full h-full bg-[#000000]/60 backdrop-blur-sm flex items-center justify-center">
+              {bgImg && (
+                <div
+                  className="rounded-lg overflow-hidden"
+                  style={{
+                    width: videoBoxSize * 0.3,
+                    height: videoBoxSize * 0.3,
+                  }}
+                >
+                  <img
+                    src={bgImg}
+                    alt="preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
             </div>
+          ) : (
+            // 连接状态：显示拉流视频
+            <video
+              ref={remoteVideoRef}
+              className="w-full h-full object-cover"
+              playsInline
+              autoPlay
+              muted={muted}
+              controls={false}
+            />
           )}
         </div>
 
