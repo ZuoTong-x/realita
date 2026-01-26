@@ -48,6 +48,9 @@ const LivePage = () => {
   const localPreviewRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamInfo = useRef<StreamInfo | null>(null);
+  // 记录进入通话时的初始积分
+  const initialCreditsRef = useRef<number>(0);
+
   // 视频盒子大小（取宽高中较小值的80%）
   const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
 
@@ -97,6 +100,11 @@ const LivePage = () => {
 
   const handleStartLiveSuccess = async () => {
     await recordStreamStartTime(streamInfo.current!.stream_id);
+    // 记录进入通话时的初始积分
+    const currentUserInfo = useUserStore.getState().userInfo;
+    if (currentUserInfo) {
+      initialCreditsRef.current = currentUserInfo.credits;
+    }
     run();
     cancelGetStreamInfo();
   };
@@ -162,9 +170,12 @@ const LivePage = () => {
       setStreamInfoErrorModalOpen(true);
     } else {
       if (res.data) {
-        // 获取最新的用户信息，避免使用闭包中的旧值
-        const currentUserInfo = useUserStore.getState().userInfo;
-        if (!currentUserInfo || currentUserInfo.credits - res.data < 0) {
+        // res.data 是当前通话的总消耗量
+        // 计算剩余积分 = 初始积分 - 总消耗量
+        const remainingCredits = initialCreditsRef.current - res.data;
+
+        // 检查积分是否足够
+        if (remainingCredits < 0) {
           message.error(t("live_no_credits"));
           await stopLive();
           await stopStream(streamInfo.current.stream_id);
@@ -174,7 +185,9 @@ const LivePage = () => {
           setStreamInfoErrorModalOpen(true);
           return;
         }
-        updateCredits(currentUserInfo.credits - res.data);
+
+        // 更新积分显示
+        updateCredits(remainingCredits);
       }
     }
   };
@@ -234,7 +247,7 @@ const LivePage = () => {
         localPreviewRef.current.srcObject = newStream;
         await localPreviewRef.current.play();
         localPreviewRef.current.srcObject = newStream;
-      } catch (error) {
+      } catch {
         message.error(t("live_permission_denied"));
       }
     };
