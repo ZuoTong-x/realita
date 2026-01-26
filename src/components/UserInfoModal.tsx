@@ -5,10 +5,21 @@ import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
 import IconCredit from "@/assets/svg/IconCredit.svg?react";
 import IconLogOut from "@/assets/svg/IconLogOut.svg?react";
+import { addPremiumCredits } from "@/api";
 
 const UserInfoModal: React.FC = () => {
   const { t } = useTranslation();
-  const { userInfo, logoutStore } = useUserStore();
+  const { userInfo, logoutStore, updateCredits } = useUserStore();
+
+  const handleAddPremiumCredits = async () => {
+    if (userInfo?.role === "regular_user") {
+      return;
+    }
+    const response = await addPremiumCredits();
+    if (response.code === 200) {
+      updateCredits(300);
+    }
+  };
 
   return (
     <div className="w-[300px] p-4 bg-white rounded-2xl shadow-xl border border-gray-100">
@@ -39,8 +50,13 @@ const UserInfoModal: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-end">
-              <span className="text-[10px] text-gray-400 mb-1">Credits</span>
-              <div className="bg-[#3B3D2C] rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+              <span className="text-[10px] text-gray-400 mb-1">
+                {t("common_credits")}
+              </span>
+              <div
+                className="bg-[#3B3D2C] rounded-full px-2 py-1 flex items-center gap-1 shadow-sm cursor-pointer"
+                onClick={() => handleAddPremiumCredits()}
+              >
                 <IconCredit className="w-3 h-3 text-[#FFBC36]" />
                 <span className="text-xs font-bold text-white leading-none">
                   {userInfo?.credits || 0}
@@ -68,7 +84,9 @@ const UserInfoModal: React.FC = () => {
 
       {/* Footer */}
       <div className="px-2 pb-1 flex items-center gap-2">
-        <span className="text-xs text-gray-400 font-medium">Version:</span>
+        <span className="text-xs text-gray-400 font-medium">
+          {t("common_version")}:
+        </span>
         <span className="text-xs text-gray-500 font-bold tracking-wider">
           v1.0
         </span>

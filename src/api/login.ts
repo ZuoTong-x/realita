@@ -69,3 +69,9 @@ export const verifyCaptcha = async (
   );
   return response.data;
 };
+
+// 补充积分 /api/v1/premium_credits、
+export const addPremiumCredits = async (): Promise<ApiResponse<null>> => {
+  const response = await request.post<ApiResponse<null>>("/premium_credits");
+  return response.data;
+};

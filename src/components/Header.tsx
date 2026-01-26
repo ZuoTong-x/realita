@@ -1,7 +1,10 @@
 import IconLogoName from "@/assets/svg/IconLogoName.svg?react";
 
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { App, Popover, Statistic } from "antd";
+import type { StatisticProps } from "antd";
+import CountUp from "react-countup";
 
 import { getLanguage, saveLanguage } from "../utils/user_util";
 
@@ -11,7 +14,7 @@ import IconCredit from "@/assets/svg/IconCredit.svg?react";
 import CommonButton from "./Common/Button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/style_utils";
-import { App, Popover } from "antd";
+
 import useUserStore from "@/stores/userStore";
 import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
 import { getUserInfo } from "@/api";
@@ -26,6 +29,19 @@ const Header = () => {
   const [routerName, setRouterName] = useState<string>("home");
   const { userInfo, isLoggedIn, setUserStore } = useUserStore();
   const [isLogged, setIsLogged] = useState<boolean>(false);
+  const [prevCredits, setPrevCredits] = useState<number>(0);
+  const [currentCredits, setCurrentCredits] = useState<number>(0);
+
+  // 追踪积分变化
+  useEffect(() => {
+    if (
+      userInfo?.credits !== undefined &&
+      userInfo.credits !== currentCredits
+    ) {
+      setPrevCredits(currentCredits);
+      setCurrentCredits(userInfo.credits);
+    }
+  }, [userInfo?.credits, currentCredits]);
 
   const handleLangClick = () => {
     if (curLng === "zh") {
@@ -39,27 +55,24 @@ const Header = () => {
     }
   };
 
-  // 获取用户信息
-
-  const fetchUserInfo = useCallback(async () => {
-    try {
-      const ret = await getUserInfo();
-      if (ret.code !== 200 || !ret.data) {
-        message.error(ret.msg || t("login_fetch_user_info_failed"));
-        return;
-      }
-      setUserStore(ret.data);
-    } catch {
-      message.error(t("common_network_error"));
-    }
-  }, [setUserStore, message, t]);
-
   // 复制当前页面链接
   const handleShareClick = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     message.success(t("common_copied_to_clipboard"));
   };
+
+  const formatter: StatisticProps["formatter"] = (value) => {
+    return (
+      <CountUp
+        start={prevCredits}
+        end={value as number}
+        separator=","
+        duration={1}
+      />
+    );
+  };
+
   useEffect(() => {
     setCurLng(getLanguage() || "en");
   }, [i18n.language]);
@@ -69,15 +82,27 @@ const Header = () => {
     setRouterName(pathName);
   }, [location]);
 
+  // 监听路由跳转，刷新用户信息
   useEffect(() => {
     if (isLoggedIn) {
-      fetchUserInfo();
+      try {
+        const fetchUserInfo = async () => {
+          const res = await getUserInfo();
+          if (res.code === 200 && res.data) {
+            setUserStore(res.data);
+          }
+        };
+        fetchUserInfo();
+      } catch {
+        message.error(t("common_network_error"));
+      }
     }
-  }, [isLoggedIn, fetchUserInfo]);
+  }, [location.pathname, isLoggedIn, message, t, setUserStore]);
 
   useEffect(() => {
     setIsLogged(isLoggedIn);
   }, [isLoggedIn]);
+
   return (
     <div className="w-full h-full px-6 flex justify-between items-center relative bg-transparent">
       <div
@@ -114,7 +139,11 @@ const Header = () => {
         {isLogged && (
           <CommonButton className="w-14 h-7 flex items-center mr-2">
             <span className="flex items-center text-sm font-normal text-[#3B3D2C]">
-              {userInfo?.credits || 0}
+              <Statistic
+                value={userInfo?.credits || 0}
+                formatter={formatter}
+                styles={{ content: { fontSize: 14 } }}
+              />
               <IconCredit className="w-3.5 h-3.5 ml-1 text-[#2A343D]" />
             </span>
           </CommonButton>

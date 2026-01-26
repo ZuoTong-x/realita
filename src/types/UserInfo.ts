@@ -47,4 +47,8 @@ export interface UserInfo {
    * 用户名
    */
   username: string;
+  /**
+   *用户角色，regular_user或premium_user或administrator，其中premium_user和admin允许调用积分补充接口。
+   */
+  role: "regular_user" | "premium_user" | "administrator";
 }

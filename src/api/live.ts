@@ -22,8 +22,8 @@ export const recordStreamStartTime = async (
 // 发送视频流心跳信号 /stream
 export const sendStreamHeartbeat = async (
   stream_id: string
-): Promise<ApiResponse<null>> => {
-  const response = await request.put<ApiResponse<null>>("/stream", {
+): Promise<ApiResponse<number>> => {
+  const response = await request.put<ApiResponse<number>>("/stream", {
     stream_id,
   });
   return response.data;

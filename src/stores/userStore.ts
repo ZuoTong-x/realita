@@ -12,6 +12,7 @@ interface UserStore {
   setLoginSuccess?: (success: boolean) => void;
   loginStore: () => void;
   logoutStore: () => void;
+  updateCredits: (credits: number) => void;
 }
 
 const useUserStore = create<UserStore>((set) => ({
@@ -22,7 +23,11 @@ const useUserStore = create<UserStore>((set) => ({
     saveUserID(info.id);
     set({ isLoggedIn: true, userInfo: info });
   },
-
+  updateCredits: (credits: number) => {
+    set((state) => ({
+      userInfo: state.userInfo ? { ...state.userInfo, credits } : null,
+    }));
+  },
   setLoginSuccess: (success: boolean) => {
     set({ isLoginSuccess: success });
   },

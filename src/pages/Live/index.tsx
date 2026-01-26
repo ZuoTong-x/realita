@@ -18,16 +18,23 @@ import {
 } from "@/api";
 import { useTranslation } from "react-i18next";
 import type { StreamInfo } from "@/types";
-import { App, Modal } from "antd";
+import { App, Modal, Progress } from "antd";
 import { useRequest } from "ahooks";
 import { useNavigate } from "react-router-dom";
+import useUserStore from "@/stores/userStore";
 
 const LivePage = () => {
   const { message } = App.useApp();
   const { t } = useTranslation();
+  const { updateCredits } = useUserStore();
   const navigate = useNavigate();
-  const bgImg = localStorage.getItem("bgImg");
+  const searchParams = new URLSearchParams(window.location.search);
 
+  const characterIdFromUrl = searchParams.get("characterId");
+  const bgImg = characterIdFromUrl
+    ? localStorage.getItem(`${characterIdFromUrl}_bgImg`)
+    : localStorage.getItem("bgImg");
+  const [progress, setProgress] = useState<number>(0);
   // 是否静音
   const [muted, setMuted] = useState<boolean>(false);
   // 控制摄像头窗口与底部按钮组显示
@@ -48,6 +55,7 @@ const LivePage = () => {
     start: startLive,
     stop: stopLive,
     status: liveStatus,
+    whipPcRef,
   } = useWebRTCWhipWhep({
     preview: localPreviewRef,
     audioOnly: !videoEnabled,
@@ -58,6 +66,7 @@ const LivePage = () => {
     const res = await getAvailableStreams();
     if (res.code === 200 && res.data) {
       streamInfo.current = res.data;
+      setProgress(Number(res.data.progress) * 100);
       if (
         res.data.status === "ready" &&
         res.data.whip_url &&
@@ -84,10 +93,9 @@ const LivePage = () => {
       setStreamInfoErrorModalOpen(true);
       cancelGetStreamInfo();
     }
-  }, []);
+  }, [videoEnabled, startLive]);
 
   const handleStartLiveSuccess = async () => {
-    console.log("handleStartLiveSuccess", streamInfo);
     await recordStreamStartTime(streamInfo.current!.stream_id);
     run();
     cancelGetStreamInfo();
@@ -148,8 +156,24 @@ const LivePage = () => {
     if (res.code !== 200) {
       stopLive();
       stopStream(streamInfo.current.stream_id);
+      cancel();
       cancelGetStreamInfo();
       setStreamInfoErrorModalOpen(true);
+    } else {
+      if (res.data) {
+        // 获取最新的用户信息，避免使用闭包中的旧值
+        const currentUserInfo = useUserStore.getState().userInfo;
+        if (!currentUserInfo || currentUserInfo.credits - res.data < 0) {
+          message.error(t("live_no_credits"));
+          stopLive();
+          stopStream(streamInfo.current.stream_id);
+          cancel();
+          cancelGetStreamInfo();
+          setStreamInfoErrorModalOpen(true);
+          return;
+        }
+        updateCredits(currentUserInfo.credits - res.data);
+      }
     }
   };
 
@@ -166,8 +190,65 @@ const LivePage = () => {
     }
   }, [muted, liveStatus]);
 
+  // 监听 videoEnabled 变化，更新本地媒体流
+  useEffect(() => {
+    const updateLocalStream = async () => {
+      // 只在本地预览已存在时才更新
+      if (!localPreviewRef.current?.srcObject) return;
+
+      try {
+        // 获取当前流
+        const oldStream = localPreviewRef.current.srcObject as MediaStream;
+        const oldVideoTracks = oldStream?.getVideoTracks() || [];
+
+        // 获取新的媒体流
+        const constraints: MediaStreamConstraints = {
+          video: videoEnabled,
+          audio: true,
+        };
+        const newStream =
+          await navigator.mediaDevices.getUserMedia(constraints);
+        const newVideoTracks = newStream.getVideoTracks();
+        const newAudioTracks = newStream.getAudioTracks();
+
+        // 如果有推流连接，替换视频轨道
+        if (liveStatus === "connected" && whipPcRef?.current) {
+          const senders = whipPcRef.current.getSenders();
+          for (const sender of senders) {
+            if (sender.track?.kind === "video") {
+              // 用新的视频轨道替换（可能是 null 如果 videoEnabled 为 false）
+              await sender.replaceTrack(newVideoTracks[0] || null);
+            }
+          }
+        }
+
+        // 停止旧的视频轨道
+        oldVideoTracks.forEach((track) => track.stop());
+
+        // 更新本地预览流
+        if (localPreviewRef.current) {
+          // 创建新的流，保留音频轨道，使用新的视频轨道
+          const updatedStream = new MediaStream();
+          newAudioTracks.forEach((track) => updatedStream.addTrack(track));
+          newVideoTracks.forEach((track) => updatedStream.addTrack(track));
+
+          localPreviewRef.current.srcObject = updatedStream;
+          await localPreviewRef.current.play().catch(() => {});
+        }
+      } catch (error) {
+        console.error("更新本地媒体流失败:", error);
+        message.error(t("live_permission_denied"));
+      }
+    };
+
+    // 只在连接状态下且本地预览存在时更新
+    if (liveStatus === "connected" && localPreviewRef.current?.srcObject) {
+      updateLocalStream();
+    }
+  }, [videoEnabled, liveStatus, message, t, whipPcRef]);
+
   const { run, cancel } = useRequest(sendStreamHeartbeatRequest, {
-    pollingInterval: 3000,
+    pollingInterval: 1000,
     pollingErrorRetryCount: 3,
     manual: true,
   });
@@ -240,6 +321,24 @@ const LivePage = () => {
                 </div>
               )}
               {/* <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" /> */}
+              <div className="w-[70%] h-16 flex items-center justify-center">
+                <Progress
+                  percent={progress}
+                  showInfo={false}
+                  styles={{
+                    track: {
+                      backgroundImage:
+                        "linear-gradient( to right, #b1f2ed, #f7e299 )",
+                      borderRadius: 8,
+                      transition: "all 0.3s ease",
+                    },
+                    rail: {
+                      backgroundColor: "rgba(0, 0, 0, 0.1)",
+                      borderRadius: 8,
+                    },
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -350,7 +449,7 @@ const LivePage = () => {
             // if (streamInfo && streamInfo.whip_url && streamInfo.whep_url) {
             //   await startLive(streamInfo.whip_url, streamInfo.whep_url);
             // }
-          } catch (e) {
+          } catch {
             message.error(t("live_permission_denied"));
           }
         }}

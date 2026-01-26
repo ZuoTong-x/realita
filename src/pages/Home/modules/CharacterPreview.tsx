@@ -81,10 +81,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     queueModalRef.current = streamInfo;
     setIsQueue(isQueue);
     setIsQueueModalOpen(true);
-    localStorage.setItem(
-      `${streamInfo.stream_id}_bgImg`,
-      characterInfo!.image.url
-    );
   };
   const handleShare = () => {
     const baseUrl = window.location.origin;
@@ -107,6 +103,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     const res = await getCharacterInfo(characterId);
     if (res.code === 200) {
       setCharacterInfo(res.data);
+      localStorage.setItem(`${characterId}_bgImg`, res.data.image.url);
     }
   }, [characterId]);
 
@@ -137,7 +134,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
         <div className="w-full flex flex-col gap-4 items-center justify-start">
           <div className="w-full flex items-center justify-center">
             <div
-              className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden w-[487px] h-[653px]`}
+              className={`relative rounded-2xl border border-[#0000001A] shadow-[0_8px_24px_rgba(0,0,0,0.08)] bg-white/60 overflow-hidden w-[487px] h-[653px] flex items-center justify-center`}
             >
               <img
                 src={characterInfo?.image.url}
@@ -263,7 +260,9 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
           setIsQueueModalOpen(false);
         }}
         onOk={() => {
-          navigate(`/live/?stream=${queueModalRef.current?.stream_id}`);
+          navigate(
+            `/live/?stream=${queueModalRef.current?.stream_id}&characterId=${characterId}`
+          );
         }}
         maskClosable={false}
         cancelText={t("common_cancel")}
