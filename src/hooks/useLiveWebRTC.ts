@@ -49,28 +49,61 @@ export function useWebRTCWhipWhep({
    *  释放所有资源
    *  -------------------------*/
   const stop = useCallback(async () => {
+    // 1. 更新状态为完成
     setStatus("finished");
-    // 停止本地轨道
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
 
-    // 停止远程轨道（新增）
-    remoteStreamRef.current?.getTracks().forEach((t) => t.stop());
+    // 2. 停止本地流轨道（仅操作一次，覆盖所有本地音视频轨道）
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        if (!track.readyState || track.readyState !== "ended") {
+          // 避免重复停止已结束轨道
+          track.stop();
+        }
+      });
+    }
 
-    // 停止 PC
-    whipPcRef.current?.close();
-    whepPcRef.current?.close();
+    // 3. 清理本地预览视频元素（核心：清空srcObject，释放流引用）
+    if (preview?.current) {
+      // 简化判断：仅判断current是否存在
+      if (preview.current.srcObject) {
+        preview.current.srcObject = null; // 关键：切断视频元素与流的绑定
+      }
+    }
 
-    whipPcRef.current = null;
-    whepPcRef.current = null;
+    // 4. 停止远程流轨道（仅操作一次）
+    if (remoteStreamRef.current) {
+      remoteStreamRef.current.getTracks().forEach((track) => {
+        if (!track.readyState || track.readyState !== "ended") {
+          track.stop();
+        }
+      });
+    }
+
+    // 5. 清理远程视频元素
+    if (remoteVideoRef?.current) {
+      // 简化判断
+      if (remoteVideoRef.current.srcObject) {
+        remoteVideoRef.current.srcObject = null;
+      }
+    }
+
+    // 6. 关闭并清空PeerConnection（先关闭再置空，避免残留）
+    if (whipPcRef.current) {
+      whipPcRef.current.close();
+      whipPcRef.current = null;
+    }
+    if (whepPcRef.current) {
+      whepPcRef.current.close();
+      whepPcRef.current = null;
+    }
+
+    // 7. 清空所有媒体流Ref（彻底释放引用，让垃圾回收生效）
     localStreamRef.current = null;
-    remoteStreamRef.current = null; // 新增
+    remoteStreamRef.current = null;
     resourceUrlRef.current = null;
-    setRemoteStream(null);
 
-    // 清除视频元素源（新增）
-    if (preview && preview.current) preview.current.srcObject = null;
-    if (remoteVideoRef && remoteVideoRef.current)
-      remoteVideoRef.current.srcObject = null;
+    // 8. 清空组件状态中的流
+    setRemoteStream(null);
   }, [preview, remoteVideoRef]);
 
   /** --------------------------

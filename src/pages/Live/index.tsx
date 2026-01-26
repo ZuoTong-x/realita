@@ -154,10 +154,11 @@ const LivePage = () => {
     if (!streamInfo.current) return;
     const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
     if (res.code !== 200) {
-      stopLive();
-      stopStream(streamInfo.current.stream_id);
+      await stopLive();
+      await stopStream(streamInfo.current.stream_id);
       cancel();
       cancelGetStreamInfo();
+      localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
       setStreamInfoErrorModalOpen(true);
     } else {
       if (res.data) {
@@ -165,10 +166,11 @@ const LivePage = () => {
         const currentUserInfo = useUserStore.getState().userInfo;
         if (!currentUserInfo || currentUserInfo.credits - res.data < 0) {
           message.error(t("live_no_credits"));
-          stopLive();
-          stopStream(streamInfo.current.stream_id);
+          await stopLive();
+          await stopStream(streamInfo.current.stream_id);
           cancel();
           cancelGetStreamInfo();
+          localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
           setStreamInfoErrorModalOpen(true);
           return;
         }
@@ -193,15 +195,13 @@ const LivePage = () => {
   // 监听 videoEnabled 变化，更新本地媒体流
   useEffect(() => {
     const updateLocalStream = async () => {
-      // 只在本地预览已存在时才更新
-      if (!localPreviewRef.current?.srcObject) return;
+      // 仅校验视频元素是否存在，删除所有srcObject相关前置判断
+      if (!localPreviewRef.current) {
+        console.error("本地预览视频元素未找到");
+        return;
+      }
 
       try {
-        // 获取当前流
-        const oldStream = localPreviewRef.current.srcObject as MediaStream;
-        const oldVideoTracks = oldStream?.getVideoTracks() || [];
-
-        // 获取新的媒体流
         const constraints: MediaStreamConstraints = {
           video: videoEnabled,
           audio: true,
@@ -209,40 +209,38 @@ const LivePage = () => {
         const newStream =
           await navigator.mediaDevices.getUserMedia(constraints);
         const newVideoTracks = newStream.getVideoTracks();
-        const newAudioTracks = newStream.getAudioTracks();
+        const oldStream = localPreviewRef.current
+          .srcObject as MediaStream | null;
+        if (oldStream) {
+          oldStream.getTracks().forEach((track) => {
+            if (track.readyState !== "ended") track.stop();
+          });
+          // 立即清空旧流引用，避免和新流冲突
+          localPreviewRef.current.srcObject = null;
+        }
 
-        // 如果有推流连接，替换视频轨道
+        // 推流连接存在时，替换PeerConnection的视频轨道（兼容二次打开）
         if (liveStatus === "connected" && whipPcRef?.current) {
           const senders = whipPcRef.current.getSenders();
           for (const sender of senders) {
             if (sender.track?.kind === "video") {
-              // 用新的视频轨道替换（可能是 null 如果 videoEnabled 为 false）
+              // 替换为新流的视频轨道，null则表示关闭
               await sender.replaceTrack(newVideoTracks[0] || null);
+              break; // 视频轨道唯一，找到即退出，优化性能
             }
           }
         }
 
-        // 停止旧的视频轨道
-        oldVideoTracks.forEach((track) => track.stop());
-
-        // 更新本地预览流
-        if (localPreviewRef.current) {
-          // 创建新的流，保留音频轨道，使用新的视频轨道
-          const updatedStream = new MediaStream();
-          newAudioTracks.forEach((track) => updatedStream.addTrack(track));
-          newVideoTracks.forEach((track) => updatedStream.addTrack(track));
-
-          localPreviewRef.current.srcObject = updatedStream;
-          await localPreviewRef.current.play().catch(() => {});
-        }
+        localPreviewRef.current.srcObject = newStream;
+        await localPreviewRef.current.play();
+        localPreviewRef.current.srcObject = newStream;
       } catch (error) {
-        console.error("更新本地媒体流失败:", error);
         message.error(t("live_permission_denied"));
       }
     };
 
-    // 只在连接状态下且本地预览存在时更新
-    if (liveStatus === "connected" && localPreviewRef.current?.srcObject) {
+    // 执行条件：仅推流连接成功即可，无需依赖srcObject（支持首次+二次打开）
+    if (liveStatus === "connected" && videoEnabled) {
       updateLocalStream();
     }
   }, [videoEnabled, liveStatus, message, t, whipPcRef]);
