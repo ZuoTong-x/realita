@@ -6,6 +6,7 @@ import IconAvatar from "@/assets/svg/IconAvatar.svg?react";
 import IconCredit from "@/assets/svg/IconCredit.svg?react";
 import IconLogOut from "@/assets/svg/IconLogOut.svg?react";
 import { addPremiumCredits } from "@/api";
+import { getRuntimeEnv } from "@/config/runtimeEnv";
 
 const UserInfoModal: React.FC = () => {
   const { t } = useTranslation();
@@ -88,7 +89,7 @@ const UserInfoModal: React.FC = () => {
           {t("common_version")}:
         </span>
         <span className="text-xs text-gray-500 font-bold tracking-wider">
-          v1.0
+          {getRuntimeEnv().VITE_APP_VERSION}
         </span>
       </div>
     </div>
