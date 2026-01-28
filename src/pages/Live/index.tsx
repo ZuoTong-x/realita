@@ -50,7 +50,7 @@ const LivePage = () => {
   const streamInfo = useRef<StreamInfo | null>(null);
   // 记录进入通话时的初始积分
   const initialCreditsRef = useRef<number>(0);
-
+  const useCreditsRef = useRef<number>(0);
   // 视频盒子大小（取宽高中较小值的80%）
   const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
 
@@ -160,6 +160,10 @@ const LivePage = () => {
   };
   const sendStreamHeartbeatRequest = async () => {
     if (!streamInfo.current) return;
+    const remainingCredits = initialCreditsRef.current - useCreditsRef.current;
+    console.log("remainingCredits", remainingCredits);
+    // 更新积分显示
+    updateCredits(remainingCredits);
     const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
     if (res.code !== 200) {
       await stopLive();
@@ -172,8 +176,7 @@ const LivePage = () => {
       if (res.data) {
         // res.data 是当前通话的总消耗量
         // 计算剩余积分 = 初始积分 - 总消耗量
-        const remainingCredits = initialCreditsRef.current - res.data;
-
+        useCreditsRef.current = res.data;
         // 检查积分是否足够
         if (remainingCredits < 0) {
           message.error(t("live_no_credits"));
@@ -185,9 +188,6 @@ const LivePage = () => {
           setStreamInfoErrorModalOpen(true);
           return;
         }
-
-        // 更新积分显示
-        updateCredits(remainingCredits);
       }
     }
   };
@@ -308,7 +308,6 @@ const LivePage = () => {
             ref={remoteVideoRef}
             className="w-full h-full object-cover"
             playsInline
-            autoPlay
             muted={muted}
             controls={false}
           />

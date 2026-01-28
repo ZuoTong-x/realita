@@ -29,19 +29,6 @@ const Header = () => {
   const [routerName, setRouterName] = useState<string>("home");
   const { userInfo, isLoggedIn, setUserStore } = useUserStore();
   const [isLogged, setIsLogged] = useState<boolean>(false);
-  const [prevCredits, setPrevCredits] = useState<number>(0);
-  const [currentCredits, setCurrentCredits] = useState<number>(0);
-
-  // 追踪积分变化
-  useEffect(() => {
-    if (
-      userInfo?.credits !== undefined &&
-      userInfo.credits !== currentCredits
-    ) {
-      setPrevCredits(currentCredits);
-      setCurrentCredits(userInfo.credits);
-    }
-  }, [userInfo?.credits, currentCredits]);
 
   const handleLangClick = () => {
     if (curLng === "zh") {
@@ -63,12 +50,15 @@ const Header = () => {
   };
 
   const formatter: StatisticProps["formatter"] = (value) => {
+    // 如果在通话页面，禁用动画直接显示数字
+    const isInLivePage = routerName === "live";
     return (
       <CountUp
-        start={prevCredits}
         end={value as number}
         separator=","
-        duration={1}
+        duration={isInLivePage ? 0.1 : 0.5}
+        preserveValue={true}
+        useEasing={false}
       />
     );
   };
