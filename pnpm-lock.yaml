@@ -11,6 +11,9 @@ importers:
       '@react-oauth/google':
         specifier: ^0.12.2
         version: 0.12.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      agora-rtc-react:
+        specifier: ^2.5.1
+        version: 2.5.1(react@18.3.1)
       ahooks:
         specifier: ^3.9.6
         version: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1079,6 +1082,12 @@ packages:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  agora-rtc-react@2.5.1:
+    resolution: {integrity: sha512-ORPbV02p8dZ2GhQxo5kTarc0BYjObc2IeqRPv9mi5/fxDI5nMY6kg54R5fUvLQU05H3Q5Kecq7M2kuZzHfNo5Q==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>=16.8'
 
   ahooks@3.9.6:
     resolution: {integrity: sha512-Mr7f05swd5SmKlR9SZo5U6M0LsL4ErweLzpdgXjA1JPmnZ78Vr6wzx0jUtvoxrcqGKYnX0Yjc02iEASVxHFPjQ==}
@@ -3610,6 +3619,10 @@ snapshots:
       acorn: 8.15.0
 
   acorn@8.15.0: {}
+
+  agora-rtc-react@2.5.1(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   ahooks@3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
