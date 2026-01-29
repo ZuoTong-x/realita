@@ -192,14 +192,33 @@ export function useWebRTCWhipWhep({
       // 构造本地媒体流：优先使用外部传入的 localStream，其次使用 preview.srcObject，最后回退到 getUserMedia
       let stream: MediaStream | null = null;
       if (localStream && localStream.getTracks().length > 0) {
-        stream = localStream;
-      } else if (
+        // 🔧 验证传入的流的轨道是否有效
+        const validTracks = localStream
+          .getTracks()
+          .filter((track) => track.readyState !== "ended");
+        if (validTracks.length > 0) {
+          stream = localStream;
+        }
+      }
+
+      if (
+        !stream &&
         preview &&
         preview.current &&
         preview.current.srcObject instanceof MediaStream
       ) {
-        stream = preview.current.srcObject as MediaStream;
-      } else {
+        // 🔧 验证 preview 流的轨道是否有效
+        const previewStream = preview.current.srcObject as MediaStream;
+        const validTracks = previewStream
+          .getTracks()
+          .filter((track) => track.readyState !== "ended");
+        if (validTracks.length > 0) {
+          stream = previewStream;
+        }
+      }
+
+      if (!stream) {
+        // 🔧 确保获取音频和视频
         stream = await navigator.mediaDevices.getUserMedia({
           video: !audioOnly,
           audio: true,
@@ -215,6 +234,17 @@ export function useWebRTCWhipWhep({
             /* ignore autoplay errors */
           }
         }
+      }
+
+      // 🔧 验证流中是否包含音频轨道
+      const audioTracks = stream!.getAudioTracks();
+      const videoTracks = stream!.getVideoTracks();
+      console.log(
+        `[WHIP] 推流包含: ${audioTracks.length} 个音频轨道, ${videoTracks.length} 个视频轨道`
+      );
+
+      if (audioTracks.length === 0) {
+        console.warn("[WHIP] 警告：本地流中没有音频轨道！");
       }
 
       localStreamRef.current = stream;
