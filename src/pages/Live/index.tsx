@@ -79,6 +79,18 @@ const LivePage = () => {
             audio: true,
           };
           const local = await navigator.mediaDevices.getUserMedia(constraints);
+
+          // 🔧 验证获取到的媒体流
+          const audioTracks = local.getAudioTracks();
+          const videoTracks = local.getVideoTracks();
+          console.log(
+            `[Live] 获取到本地流: ${audioTracks.length} 个音频轨道, ${videoTracks.length} 个视频轨道`
+          );
+
+          if (audioTracks.length === 0) {
+            console.error("[Live] 错误：没有获取到音频轨道！");
+          }
+
           if (localPreviewRef.current) {
             localPreviewRef.current.srcObject = local;
 
@@ -86,7 +98,8 @@ const LivePage = () => {
           }
           // 发起通话（WHIP/WHEP）
           await startLive(res.data.whip_url, res.data.whep_url);
-        } catch {
+        } catch (err) {
+          console.error("[Live] 获取媒体流失败:", err);
           setPermModalOpen(true);
         }
       }
@@ -212,7 +225,11 @@ const LivePage = () => {
         };
         const newStream =
           await navigator.mediaDevices.getUserMedia(constraints);
+
+        // 🔧 修复：同时获取音频和视频轨道
         const newVideoTracks = newStream.getVideoTracks();
+        const newAudioTracks = newStream.getAudioTracks();
+
         const oldStream = localPreviewRef.current
           .srcObject as MediaStream | null;
         if (oldStream) {
@@ -223,24 +240,31 @@ const LivePage = () => {
           localPreviewRef.current.srcObject = null;
         }
 
+        // 🔧 修复：替换音频和视频轨道到 PeerConnection
         if (liveStatus === "connected" && whipPcRef?.current) {
           const senders = whipPcRef.current.getSenders();
           for (const sender of senders) {
             if (sender.track?.kind === "video") {
+              // 替换视频轨道（如果 videoEnabled=false，则传 null 关闭视频）
               await sender.replaceTrack(newVideoTracks[0] || null);
+            } else if (sender.track?.kind === "audio") {
+              // 🔧 关键修复：替换音频轨道，确保音频持续发送
+              if (newAudioTracks[0]) {
+                await sender.replaceTrack(newAudioTracks[0]);
+              }
             }
           }
         }
 
         localPreviewRef.current.srcObject = newStream;
         await localPreviewRef.current.play();
-        localPreviewRef.current.srcObject = newStream;
       } catch {
         message.error(t("live_permission_denied"));
       }
     };
 
-    if (liveStatus === "connected" && videoEnabled) {
+    // 🔧 修复：无论 videoEnabled 是 true 还是 false，都要更新（因为可能需要更新音频）
+    if (liveStatus === "connected") {
       updateLocalStream();
     }
   }, [videoEnabled, liveStatus, message, t, whipPcRef]);
