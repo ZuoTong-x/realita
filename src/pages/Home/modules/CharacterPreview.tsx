@@ -36,13 +36,13 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
 }) => {
   const { t } = useTranslation();
   const { message } = App.useApp();
+  const characterIdRef = useRef<string>(characterId);
   const navigate = useNavigate();
   const queueModalRef = useRef<StreamInfo>(null);
   const [characterInfo, setCharacterInfo] = useState<CharacterInfo | null>(
     null
   );
-  const [isQueueModalOpen, setIsQueueModalOpen] = useState(false);
-  const [isQueue, setIsQueue] = useState(false);
+
   const {
     isInQueue,
     queueStatus,
@@ -51,8 +51,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     formatEstimateTime,
   } = useQueue({
     characterId,
-    onQueueComplete: (streamInfo, isQueue) =>
-      handleQueueComplete(streamInfo, isQueue),
+    onQueueComplete: (streamInfo) => handleQueueComplete(streamInfo),
     enabled: open,
   });
 
@@ -77,14 +76,15 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       onEdit(characterInfo);
     }
   };
-  const handleQueueComplete = (streamInfo: StreamInfo, isQueue: boolean) => {
+  const handleQueueComplete = (streamInfo: StreamInfo) => {
     queueModalRef.current = streamInfo;
-    setIsQueue(isQueue);
-    setIsQueueModalOpen(true);
+    navigate(
+      `/live/?stream=${queueModalRef.current?.stream_id}&characterId=${characterIdRef.current}`
+    );
   };
   const handleShare = () => {
     const baseUrl = window.location.origin;
-    const url = baseUrl + "?characterId=" + characterId;
+    const url = baseUrl + "?characterId=" + characterIdRef.current;
     navigator.clipboard.writeText(url);
     message.success(t("common_copied_to_clipboard"));
   };
@@ -103,6 +103,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     const res = await getCharacterInfo(characterId);
     if (res.code === 200) {
       setCharacterInfo(res.data);
+      characterIdRef.current = characterId;
       localStorage.setItem(`${characterId}_bgImg`, res.data.image.url);
     }
   }, [characterId]);
@@ -252,32 +253,6 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
             </div>
           </div>
         </div>
-      </Modal>
-      <Modal
-        open={isQueueModalOpen}
-        onCancel={() => {
-          handleLeaveQueue();
-          setIsQueueModalOpen(false);
-        }}
-        onOk={() => {
-          navigate(
-            `/live/?stream=${queueModalRef.current?.stream_id}&characterId=${characterId}`
-          );
-        }}
-        maskClosable={false}
-        cancelText={t("common_cancel")}
-        okText={t("common_confirm")}
-        centered
-      >
-        {isQueue ? (
-          <div>
-            <div>{t("live_character_ready")}</div>
-          </div>
-        ) : (
-          <div>
-            <div>{t("live_continue_call")}</div>
-          </div>
-        )}
       </Modal>
     </>
   );

@@ -83,7 +83,7 @@
   "live_character_ready": "角色已就绪，进入通话",
   "live_continue_call": "还有进行中的通话，继续通话？",
   "live_stream_info_error_title": "通话结束",
-  "live_stream_info_error_desc": "通话结束，请重新开始对话",
+  "live_stream_info_error_desc": "本次通话已经结束啦，想继续聊可以重新发起对话哦",
   "live_no_credits": "积分不足",
   "user_history": "创作历史",
   "user_likes": "我的喜欢",

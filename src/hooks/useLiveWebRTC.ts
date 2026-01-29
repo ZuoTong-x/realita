@@ -125,7 +125,6 @@ export function useWebRTCWhipWhep({
       if (remoteVideoRef && remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = inbound;
         remoteVideoRef.current.muted = false;
-        remoteVideoRef.current.playsInline = true;
       }
 
       pc.ontrack = (ev) => {
@@ -208,7 +207,7 @@ export function useWebRTCWhipWhep({
         // 如果提供了预览元素但尚未绑定，则绑定并尝试播放
         if (preview && preview.current && !preview.current.srcObject) {
           preview.current.srcObject = stream;
-          preview.current.muted = true;
+          // preview.current.muted = true;
           preview.current.playsInline = true as unknown as boolean;
           try {
             await preview.current.play();

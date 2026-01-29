@@ -49,7 +49,6 @@ const HomePage = () => {
       })),
     ];
     setCharacterList(characterList);
-    console.log(characterList);
     setCurrentCharacter(characterList[0]);
     const likedCharacters = await getUserLikedCharacters();
     if (likedCharacters.code === 200) {

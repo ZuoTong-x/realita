@@ -385,9 +385,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           onClick={() => createCharacter()}
         >
           <span className="text-sm font-normal text-[#3B3D2C]">
-            {type === "create"
-              ? t("home_create_character")
-              : t("home_edit_character")}
+            {t("common_confirm")}
           </span>
           <IconStar className="w-4 h-4 mx-1" />
         </button>

@@ -4,7 +4,7 @@ import { Avatar, List, Card } from "antd";
 import CommonButton from "@/components/Common/Button";
 import RadioTabs from "@/components/RadioTabs";
 import IconUser from "@/assets/svg/IconUser.svg?react";
-import IconHistory from "@/assets/svg/IconHistory.svg?react";
+// import IconHistory from "@/assets/svg/IconHistory.svg?react";
 import IconLike from "@/assets/svg/IconLike.svg?react";
 import IconLogout from "@/assets/svg/IconLogOut.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
@@ -26,7 +26,7 @@ import { Ratio } from "@/types/Live";
 
 const UserPage = () => {
   const { t } = useTranslation();
-  const [activeValue, setActiveValue] = useState<string>("history");
+  const [activeValue, setActiveValue] = useState<string>("assets");
   const [createOpen, setCreateOpen] = useState(false);
   const [createCharacterInfo, setCreateCharacterInfo] =
     useState<CharacterInfo | null>(null);
@@ -45,13 +45,13 @@ const UserPage = () => {
   const [previewCharacterId, setPreviewCharacterId] = useState("");
   const [previewRatio, setPreviewRatio] = useState<Ratio>(Ratio.PORTRAIT);
   const tabsList = [
-    { label: t("user_history"), value: "history", icon: <IconHistory /> },
-    { label: t("user_likes"), value: "likes", icon: <IconLike /> },
+    // { label: t("user_history"), value: "history", icon: <IconHistory /> },
     {
       label: t("user_assets"),
       value: "assets",
       icon: <IconUser className="w-5 h-5" />,
     },
+    { label: t("user_likes"), value: "likes", icon: <IconLike /> },
   ];
 
   // 从列表直接打开预览
@@ -133,9 +133,9 @@ const UserPage = () => {
           <div className="text-sm text-[#B1B6BD]">{userInfo?.email}</div>
         </div>
         <div className="py-1 flex-col justify-between items-end">
-          <CommonButton size="large" className=" h-10 " onClick={handleLogOut}>
-            <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-10">
-              <IconLogout className="w-5 h-5" />
+          <CommonButton size="small" onClick={handleLogOut}>
+            <span className="text-sm font-medium text-[#333] flex items-center gap-2 justify-center px-3">
+              <IconLogout className="w-3 h-3" />
               {t("login_login_out")}
             </span>
           </CommonButton>
