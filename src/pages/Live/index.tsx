@@ -37,8 +37,6 @@ const LivePage = () => {
   const [progress, setProgress] = useState<number>(0);
   // 是否静音
   const [muted, setMuted] = useState<boolean>(false);
-  // 控制摄像头窗口与底部按钮组显示
-  const [uiVisible, setUiVisible] = useState<boolean>(true);
 
   const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
   const [permModalOpen, setPermModalOpen] = useState<boolean>(false);
@@ -58,6 +56,7 @@ const LivePage = () => {
     start: startLive,
     stop: stopLive,
     status: liveStatus,
+    remoteStream,
     whipPcRef,
   } = useWebRTCWhipWhep({
     preview: localPreviewRef,
@@ -161,7 +160,6 @@ const LivePage = () => {
   const sendStreamHeartbeatRequest = async () => {
     if (!streamInfo.current) return;
     const remainingCredits = initialCreditsRef.current - useCreditsRef.current;
-    console.log("remainingCredits", remainingCredits);
     // 更新积分显示
     updateCredits(remainingCredits);
     const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
@@ -191,12 +189,6 @@ const LivePage = () => {
       }
     }
   };
-
-  useEffect(() => {
-    const onDblClick = () => setUiVisible((prev) => !prev);
-    window.addEventListener("dblclick", onDblClick, { passive: true });
-    return () => window.removeEventListener("dblclick", onDblClick);
-  }, []);
 
   // 同步 muted 状态到远端视频（确保音频控制正确）
   useEffect(() => {
@@ -228,18 +220,15 @@ const LivePage = () => {
           oldStream.getTracks().forEach((track) => {
             if (track.readyState !== "ended") track.stop();
           });
-          // 立即清空旧流引用，避免和新流冲突
+
           localPreviewRef.current.srcObject = null;
         }
 
-        // 推流连接存在时，替换PeerConnection的视频轨道（兼容二次打开）
         if (liveStatus === "connected" && whipPcRef?.current) {
           const senders = whipPcRef.current.getSenders();
           for (const sender of senders) {
             if (sender.track?.kind === "video") {
-              // 替换为新流的视频轨道，null则表示关闭
               await sender.replaceTrack(newVideoTracks[0] || null);
-              break; // 视频轨道唯一，找到即退出，优化性能
             }
           }
         }
@@ -252,7 +241,6 @@ const LivePage = () => {
       }
     };
 
-    // 执行条件：仅推流连接成功即可，无需依赖srcObject（支持首次+二次打开）
     if (liveStatus === "connected" && videoEnabled) {
       updateLocalStream();
     }
@@ -269,14 +257,7 @@ const LivePage = () => {
   });
 
   return (
-    <div
-      className="relative w-full min-h-screen flex items-center justify-center"
-      style={{ touchAction: "manipulation" }}
-      onDoubleClick={(e) => {
-        e.preventDefault();
-        setUiVisible((prev) => !prev);
-      }}
-    >
+    <div className="relative w-full min-h-screen flex items-center justify-center">
       {bgImg ? (
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <img
@@ -310,6 +291,8 @@ const LivePage = () => {
             playsInline
             muted={muted}
             controls={false}
+            autoPlay
+            disablePictureInPicture
           />
 
           {/* 未连接状态：灰色蒙版 + 小正方形图片 */}
@@ -354,63 +337,62 @@ const LivePage = () => {
         </div>
 
         {/* 底部按钮组（受 uiVisible 控制） */}
-        {uiVisible && (
-          <div className="absolute bottom-10 left-0 w-full flex items-center justify-center gap-6 z-20">
+
+        <div className="absolute bottom-10 left-0 w-full flex items-center justify-center gap-6 z-20">
+          <CommonButton
+            size="large"
+            className="h-20 px-0"
+            borderRadiusPx={54}
+            onClick={() => {
+              // 切换视频开关，并在通话中重启以生效
+              const next = !videoEnabled;
+              setVideoEnabled(next);
+            }}
+          >
+            <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
+              {videoEnabled ? (
+                <IconVideoOn className="w-12 h-12" />
+              ) : (
+                <IconVideoOff className="w-12 h-12" />
+              )}
+            </span>
+          </CommonButton>
+          {liveStatus === "connected" && (
             <CommonButton
               size="large"
-              className="h-20 px-0"
+              className="h-24 px-0"
               borderRadiusPx={54}
-              onClick={() => {
-                // 切换视频开关，并在通话中重启以生效
-                const next = !videoEnabled;
-                setVideoEnabled(next);
-              }}
+              onClick={handleCall}
             >
-              <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
-                {videoEnabled ? (
-                  <IconVideoOn className="w-12 h-12" />
-                ) : (
-                  <IconVideoOff className="w-12 h-12" />
-                )}
-              </span>
-            </CommonButton>
-            {liveStatus === "connected" && (
-              <CommonButton
-                size="large"
-                className="h-24 px-0"
-                borderRadiusPx={54}
-                onClick={handleCall}
-              >
-                <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-5">
-                  {/* {liveStatus === "connecting" && (
+              <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-5">
+                {/* {liveStatus === "connecting" && (
                   <IconLoading className="w-13 h-13 text-[#26babb] animate-spin" />
                 )} */}
-                  {liveStatus === "connected" && (
-                    <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
-                  )}
-                </span>
-              </CommonButton>
-            )}
-            <CommonButton
-              size="large"
-              className="h-20 px-0"
-              borderRadiusPx={54}
-              onClick={() => setMuted((prev) => !prev)}
-              aria-label={muted ? "unmute-page" : "mute-page"}
-            >
-              <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
-                {muted ? (
-                  <IconAudioOff className="w-12 h-12" />
-                ) : (
-                  <IconAudioOn className="w-12 h-12" />
+                {liveStatus === "connected" && (
+                  <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
                 )}
               </span>
             </CommonButton>
-          </div>
-        )}
+          )}
+          <CommonButton
+            size="large"
+            className="h-20 px-0"
+            borderRadiusPx={54}
+            onClick={() => setMuted((prev) => !prev)}
+            aria-label={muted ? "unmute-page" : "mute-page"}
+          >
+            <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
+              {muted ? (
+                <IconAudioOff className="w-12 h-12" />
+              ) : (
+                <IconAudioOn className="w-12 h-12" />
+              )}
+            </span>
+          </CommonButton>
+        </div>
       </div>
 
-      {userPos && uiVisible && (
+      {userPos && (
         <div
           className="absolute cursor-move z-30"
           style={{ left: userPos.left, top: userPos.top, touchAction: "none" }}
@@ -456,9 +438,6 @@ const LivePage = () => {
             };
             await navigator.mediaDevices.getUserMedia(constraints);
             setPermModalOpen(false);
-            // if (streamInfo && streamInfo.whip_url && streamInfo.whep_url) {
-            //   await startLive(streamInfo.whip_url, streamInfo.whep_url);
-            // }
           } catch {
             message.error(t("live_permission_denied"));
           }

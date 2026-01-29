@@ -83,7 +83,7 @@
   "live_character_ready": "Character is ready, enter the call",
   "live_continue_call": "There is a ongoing call, continue the call?",
   "live_stream_info_error_title": "Call ended",
-  "live_stream_info_error_desc": "Call ended, please start a new conversation",
+  "live_stream_info_error_desc": "This call has ended successfully. Feel free to start a new conversation if you'd like to continue chatting.",
   "live_no_credits": "Credits not enough",
   "user_history": "History",
   "user_likes": "Likes",
