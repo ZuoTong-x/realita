@@ -51,8 +51,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
     formatEstimateTime,
   } = useQueue({
     characterId,
-    onQueueComplete: (streamInfo, isQueue) =>
-      handleQueueComplete(streamInfo, isQueue),
+    onQueueComplete: (streamInfo) => handleQueueComplete(streamInfo),
     enabled: open,
   });
 
@@ -77,7 +76,7 @@ const CharacterPreview: React.FC<CharacterPreviewProps> = ({
       onEdit(characterInfo);
     }
   };
-  const handleQueueComplete = (streamInfo: StreamInfo, isQueue: boolean) => {
+  const handleQueueComplete = (streamInfo: StreamInfo) => {
     queueModalRef.current = streamInfo;
     navigate(
       `/live/?stream=${queueModalRef.current?.stream_id}&characterId=${characterIdRef.current}`

@@ -56,7 +56,6 @@ const LivePage = () => {
     start: startLive,
     stop: stopLive,
     status: liveStatus,
-    remoteStream,
     whipPcRef,
   } = useWebRTCWhipWhep({
     preview: localPreviewRef,
