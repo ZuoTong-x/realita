@@ -370,7 +370,10 @@ const LivePage = () => {
   });
 
   return (
-    <div className="relative w-full min-h-screen flex items-center justify-center">
+    <div
+      className="relative w-full min-h-screen flex items-center justify-center"
+      style={{ overflow: "hidden", height: "100vh" }}
+    >
       {bgImg ? (
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <img
@@ -509,13 +512,24 @@ const LivePage = () => {
 
       {userPos && (
         <div
-          className="absolute cursor-move z-30"
-          style={{ left: userPos.left, top: userPos.top, touchAction: "none" }}
+          className="absolute z-30"
+          style={{
+            left: userPos.left,
+            top: userPos.top,
+            touchAction: "none",
+            cursor: "move",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+          }}
           ref={userDragRef as React.RefObject<HTMLDivElement>}
         >
           <div
             className="border-[2px] border-solid border-white rounded-2xl overflow-hidden bg-black/20 backdrop-blur-sm"
-            style={{ width: previewSize.width, height: previewSize.height }}
+            style={{
+              width: previewSize.width,
+              height: previewSize.height,
+              pointerEvents: "auto",
+            }}
           >
             {videoEnabled ? (
               <video
@@ -524,9 +538,13 @@ const LivePage = () => {
                 playsInline
                 muted
                 autoPlay
+                style={{ pointerEvents: "none" }}
               />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer select-none bg-black">
+              <div
+                className="w-full h-full flex flex-col items-center justify-center gap-2 select-none bg-black"
+                style={{ pointerEvents: "none" }}
+              >
                 <IconCamera className="w-10 h-10 text-white/80" />
                 <div className="text-white/80 text-sm">
                   {t("common_open_camera")}

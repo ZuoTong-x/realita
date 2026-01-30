@@ -12,7 +12,7 @@ import { routes } from "./routes/route";
 import { App as AntdApp, ConfigProvider } from "antd";
 import theme from "./theme";
 import useUserStore from "@/stores/userStore";
-
+import { MobileProvider } from "@/provider";
 import { navigation } from "@/utils/navigation";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -61,11 +61,13 @@ const App = () => {
   return (
     <BrowserRouter basename={BASENAME}>
       <NavigateSetter />
-      <ConfigProvider theme={theme}>
-        <AntdApp>
-          <Routes>{renderRoutes(routes)}</Routes>
-        </AntdApp>
-      </ConfigProvider>
+      <MobileProvider>
+        <ConfigProvider theme={theme}>
+          <AntdApp>
+            <Routes>{renderRoutes(routes)}</Routes>
+          </AntdApp>
+        </ConfigProvider>
+      </MobileProvider>
     </BrowserRouter>
   );
 };

@@ -175,6 +175,7 @@ const Header = () => {
           </Popover>
         ) : (
           <CommonButton
+            className="w-7 h-7 flex items-center "
             onClick={() => {
               navigate("/login");
             }}

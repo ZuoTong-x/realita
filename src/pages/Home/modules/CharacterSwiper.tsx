@@ -10,6 +10,7 @@ import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
 import LikeTag from "@/components/LikeTag";
 import useCharacterListStore from "@/stores/characterListStore";
+import { useMobile } from "@/provider";
 
 type CharacterSwiperProps = {
   onChat: (character: CharacterInfo) => void;
@@ -23,8 +24,13 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     setCurrentCharacter,
   } = useCharacterListStore();
   const { t } = useTranslation();
+  const { isMobile } = useMobile();
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [mutedAll, setMutedAll] = useState<boolean>(false);
+
+  // 触摸滑动相关状态
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   const visibleList = useMemo(() => {
     if (!currentCharacter || characterList.length === 0) return [];
@@ -35,6 +41,12 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (curIdx === -1) return [];
 
     const res: { item: CharacterInfo; offset: number }[] = [];
+
+    // 移动端只显示中心卡片
+    if (isMobile) {
+      res.push({ item: currentCharacter, offset: 0 });
+      return res;
+    }
 
     // 如果数据量足够，显示 7 个（-3 到 3）
     if (len >= 7) {
@@ -52,13 +64,13 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       }
     }
     return res;
-  }, [characterList, currentCharacter]);
+  }, [characterList, currentCharacter, isMobile]);
 
   const getCardStyleByOffset = (offset: number): React.CSSProperties => {
     const baseStyle: React.CSSProperties = {
       position: "absolute",
-      width: "380px",
-      maxWidth: "90vw",
+      width: isMobile ? "100vw" : "380px",
+      maxWidth: isMobile ? "100vw" : "90vw",
       height: "100%",
       backgroundColor: "transparent",
       borderRadius: "16px",
@@ -72,9 +84,9 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       cursor: "pointer",
       transformStyle: "preserve-3d",
       transformOrigin: "center bottom",
-      left: "50%",
-      bottom: "-30px",
-      marginLeft: "-190px",
+      left: isMobile ? "0" : "50%",
+      bottom: isMobile ? "0" : "-30px",
+      marginLeft: isMobile ? "0" : "-190px",
       boxSizing: "border-box",
       display: "flex",
       flexDirection: "column",
@@ -83,7 +95,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     if (offset === 0) {
       return {
         ...baseStyle,
-        transform: "scale(1.05) rotate(0deg) translateY(0)",
+        transform: isMobile ? "" : "scale(1.05) rotate(0deg) translateY(0)",
         zIndex: 10,
         filter: "blur(0px)",
         opacity: 1,
@@ -148,6 +160,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     return cn(
       "group flex flex-col",
       offset === 0 &&
+        !isMobile &&
         "hover:!scale-[1.07] hover:!shadow-[0_16px_48px_rgba(0,0,0,0.25)]"
     );
   };
@@ -171,13 +184,26 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     });
   }, [mutedAll, characterList]);
 
+  // 移动端自动播放中心卡片视频
+  useEffect(() => {
+    if (isMobile && visibleList.length > 0) {
+      const centerIdx = visibleList.findIndex((item) => item.offset === 0);
+      if (centerIdx !== -1) {
+        playOnly(centerIdx);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, currentCharacter]);
+
   const renderSkeleton = () => {
-    const offsets = [-3, -2, -1, 0, 1, 2, 3];
+    // 移动端只显示中心卡片的骨架屏
+    const offsets = isMobile ? [0] : [-3, -2, -1, 0, 1, 2, 3];
     return (
       <div
         className={cn(
           "flex-1 relative flex items-end justify-center h-full",
-          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
+          "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] translate-y-[-40px]",
+          isMobile ? "mx-0 w-full" : "mx-auto"
         )}
       >
         {offsets.map((offset, idx) => (
@@ -251,6 +277,37 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     stepToIndex(prevIdx);
   };
 
+  // 触摸滑动处理
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!isMobile) return;
+    const diffX = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 50; // 最小滑动距离
+
+    if (Math.abs(diffX) > minSwipeDistance) {
+      if (diffX > 0) {
+        // 左滑，下一个
+        goNext();
+      } else {
+        // 右滑，上一个
+        goPrev();
+      }
+    }
+
+    // 重置
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
   return (
     <div className={cn("relative w-full h-full flex flex-col pt-[72px]")}>
       {characterList.length === 0 && renderSkeleton()}
@@ -258,8 +315,14 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
         <div
           className={cn(
             "flex-1 relative flex items-end justify-center h-full z-[21]",
-            "[perspective:1200px] [transform-style:preserve-3d] pb-[100px] mx-auto translate-y-[-40px]"
+            "",
+            isMobile
+              ? "mx-0 w-full"
+              : "mx-auto [perspective:1200px] [transform-style:preserve-3d]  pb-[100px] translate-y-[-40px]"
           )}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {visibleList.map(({ item: character, offset }, idx: number) => {
             const isCenter = offset === 0;
@@ -269,6 +332,8 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                 style={getCardStyleByOffset(offset)}
                 className={getCardClassByOffset(offset)}
                 onClick={() => {
+                  // 移动端禁用点击切换
+                  if (isMobile) return;
                   const targetIdx = characterList.findIndex(
                     (c) => c.character_id === character.character_id
                   );
@@ -278,12 +343,14 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                 <div
                   className="w-full aspect-[2/3] overflow-hidden bg-transparent mt-0 rounded-t-[16px] relative flex-1"
                   onMouseEnter={() => {
-                    if (isCenter) {
+                    // 桌面端 hover 播放
+                    if (isCenter && !isMobile) {
                       playOnly(idx);
                     }
                   }}
                   onMouseLeave={() => {
-                    if (isCenter) {
+                    // 桌面端 hover 离开暂停
+                    if (isCenter && !isMobile) {
                       const v = videoRefs.current[idx];
                       if (v) {
                         v.pause();
@@ -309,7 +376,12 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                   {isCenter && (
                     <>
                       {character.number_of_likes !== null && (
-                        <div className="absolute top-3 right-3 flex items-center justify-center">
+                        <div
+                          className="absolute top-3 right-3 flex items-center justify-center"
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onTouchMove={(e) => e.stopPropagation()}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                        >
                           <LikeTag
                             characterId={character.character_id}
                             likeCount={character.number_of_likes}
@@ -326,7 +398,17 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                           />
                         </div>
                       )}
-                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center group-hover:opacity-100 opacity-0 transition-opacity duration-300">
+                      <div
+                        className={cn(
+                          "absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center justify-center transition-opacity duration-300",
+                          isMobile
+                            ? "opacity-100"
+                            : "group-hover:opacity-100 opacity-0"
+                        )}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                      >
                         <CommonButton
                           size="large"
                           className="h-10 px-0 hover:scale-110 transition-transform duration-300"
@@ -342,7 +424,12 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                           </span>
                         </CommonButton>
                       </div>
-                      <div className="absolute bottom-3 right-4 flex items-center justify-center ">
+                      <div
+                        className="absolute bottom-3 right-4 flex items-center justify-center"
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                      >
                         <CommonButton
                           borderRadiusPx={42}
                           className="h-10 w-10 p-0 bg-white/60 hover:scale-110 transition-transform duration-300"
@@ -375,7 +462,7 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
           })}
         </div>
       )}
-      {characterList.length > 1 && currentCharacter && (
+      {characterList.length > 1 && currentCharacter && !isMobile && (
         <div className="w-full flex items-center justify-center gap-4">
           <CommonButton
             onClick={goPrev}

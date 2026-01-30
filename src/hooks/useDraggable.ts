@@ -94,18 +94,23 @@ export default function useDraggable(
       setPosition(clamp({ left: ds.baseLeft + dx, top: ds.baseTop + dy }));
       e.preventDefault();
     };
-    const end = () => {
+    const onMouseUp = () => {
+      dragStateRef.current = null;
+    };
+    const onTouchEnd = () => {
       dragStateRef.current = null;
     };
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", end, { once: false });
+    window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", end, { once: false });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", end);
+      window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", end);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
     };
   }, [clamp]);
 

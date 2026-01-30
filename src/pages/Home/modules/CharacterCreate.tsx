@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/style_utils";
 import Cropper, { type ReactCropperElement } from "react-cropper";
 import "./cropper.css";
+import { useMobile } from "@/provider";
 
 import DropdownMenu from "@/components/DropdownMenu";
 import VoiceModal from "./VoiceModal";
@@ -64,6 +65,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
 }) => {
   const { message } = App.useApp();
   const { t, i18n } = useTranslation();
+  const { isMobile } = useMobile();
 
   const tabsList: RatioItem[] = [
     {
@@ -359,35 +361,53 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
   };
   const renderFooter = () => {
     return (
-      <div className="w-full flex items-center justify-between">
-        <DropdownMenu<ExtendedLipSyncModelInfo>
-          list={lipSyncModels}
-          value={formData.model}
-          onChange={(model) => updateFormData("model", model)}
-          formatLabel={formatModelName}
-          getKey={(_, index) => index}
-          isSelected={(item, val) => val?.motion_style === item.motion_style}
-          defaultLabel={DEFAULT_MODEL_NAME}
-          iconActive={<IconModelBlack className="w-4 h-4" />}
-          iconInactive={<IconModelGray className="w-4 h-4" />}
-          iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
-          renderSelectedIcon={(_, isSelected) =>
-            isSelected ? (
-              <IconChosenBlack className="w-4 h-4 ml-3" />
-            ) : (
-              <div className="w-4 h-4 ml-3" />
-            )
-          }
-          disabled={lipSyncModels.length === 0}
-        />
+      <div
+        className={cn(
+          "w-full flex items-center",
+          isMobile ? "flex-col gap-3" : "justify-between"
+        )}
+      >
+        {/* 移动端隐藏模型选择器，因为 hover 不适配移动端 */}
+        {!isMobile && (
+          <DropdownMenu<ExtendedLipSyncModelInfo>
+            list={lipSyncModels}
+            value={formData.model}
+            onChange={(model) => updateFormData("model", model)}
+            formatLabel={formatModelName}
+            getKey={(_, index) => index}
+            isSelected={(item, val) => val?.motion_style === item.motion_style}
+            defaultLabel={DEFAULT_MODEL_NAME}
+            iconActive={<IconModelBlack className="w-4 h-4" />}
+            iconInactive={<IconModelGray className="w-4 h-4" />}
+            iconArrow={<IconArrowDownBlack className="w-4 h-4" />}
+            renderSelectedIcon={(_, isSelected) =>
+              isSelected ? (
+                <IconChosenBlack className="w-4 h-4 ml-3" />
+              ) : (
+                <div className="w-4 h-4 ml-3" />
+              )
+            }
+            disabled={lipSyncModels.length === 0}
+          />
+        )}
         <button
-          className="h-8 px-[14px] flex items-center bg-[#F6F3F3] rounded-full cursor-pointer"
+          className={cn(
+            "flex items-center bg-[#F6F3F3] rounded-full cursor-pointer",
+            isMobile ? "h-10 px-6 w-full justify-center" : "h-8 px-[14px]"
+          )}
           onClick={() => createCharacter()}
         >
-          <span className="text-sm font-normal text-[#3B3D2C]">
+          <span
+            className={cn(
+              "font-normal text-[#3B3D2C]",
+              isMobile ? "text-base" : "text-sm"
+            )}
+          >
             {t("common_confirm")}
           </span>
-          <IconStar className="w-4 h-4 mx-1" />
+          <IconStar
+            className={cn(isMobile ? "w-5 h-5 ml-2" : "w-4 h-4 mx-1")}
+          />
         </button>
       </div>
     );
@@ -471,14 +491,23 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
       maskClosable={false}
       footer={renderFooter()}
       classNames={{
-        container: "w-[32.25rem] h-[42rem] !rounded-2xl",
-        body: "!pt-4 !pr-4 max-h-[35rem] overflow-y-auto",
+        container: cn(
+          "!rounded-2xl",
+          isMobile ? "w-[95vw] max-w-[95vw] max-h-[90vh]" : "w-[32.25rem]"
+        ),
+        body: cn(
+          "!pt-4 !pr-4 overflow-y-auto",
+          isMobile ? "max-h-[calc(90vh-160px)]" : "max-h-[35rem]"
+        ),
       }}
     >
-      <div className="w-full flex flex-col gap-3">
+      <div className={cn("w-full flex flex-col", isMobile ? "gap-2" : "gap-3")}>
         {/* Image Upload Section */}
         <div
-          className="w-full h-[18rem] flex items-center justify-center border border-black/30 rounded-2xl relative"
+          className={cn(
+            "w-full flex items-center justify-center border border-black/30 rounded-2xl relative",
+            isMobile ? "h-[12rem]" : "h-[18rem]"
+          )}
           onClick={() => !formData.imageUrl && imgInputRef.current?.click()}
         >
           {formData.imageUrl ? (
@@ -519,7 +548,7 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
                   }
                   style={{
                     width: "100%",
-                    height: "18rem",
+                    height: isMobile ? "12rem" : "18rem",
                     background: "#333",
                     borderRadius: "16px",
                   }}
@@ -527,9 +556,23 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               </div>
             )
           ) : (
-            <div className="w-[24rem] h-[18rem] flex flex-col justify-center items-center cursor-pointer">
-              <IconRoleAdd className="w-[56px] h-[56px] mb-6" />
-              <span className="text-base font-medium text-[#3B3D2C80]">
+            <div
+              className={cn(
+                "flex flex-col justify-center items-center cursor-pointer",
+                isMobile ? "w-full h-[12rem]" : "w-[24rem] h-[18rem]"
+              )}
+            >
+              <IconRoleAdd
+                className={cn(
+                  isMobile ? "w-10 h-10 mb-3" : "w-[56px] h-[56px] mb-6"
+                )}
+              />
+              <span
+                className={cn(
+                  "font-medium text-[#3B3D2C80]",
+                  isMobile ? "text-sm" : "text-base"
+                )}
+              >
                 {t("home_upload_character_image")}
               </span>
             </div>
@@ -550,7 +593,10 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
 
         <Input
           value={formData.name}
-          className="w-full h-10  border-black/30 rounded-xl p-2 hover:border-primary focus-within:border-primary"
+          className={cn(
+            "w-full border-black/30 rounded-xl p-2 hover:border-primary focus-within:border-primary",
+            isMobile ? "h-9" : "h-10"
+          )}
           onChange={(e) => updateFormData("name", e.target.value)}
           placeholder={t("home_enter_character_name")}
         />
@@ -560,8 +606,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           <textarea
             value={formData.llm_prompt}
             onChange={(e) => updateFormData("llm_prompt", e.target.value)}
-            rows={4}
-            className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
+            rows={isMobile ? 3 : 4}
+            className={cn(
+              "w-full resize-none leading-6 p-2 box-border overflow-auto outline-none",
+              isMobile ? "h-20" : "h-24"
+            )}
             placeholder={t("home_llm_prompt_placeholder")}
           />
         </div>
@@ -571,8 +620,11 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
           <textarea
             value={formData.video_prompt}
             onChange={(e) => updateFormData("video_prompt", e.target.value)}
-            rows={4}
-            className="w-full resize-none leading-6 h-24 p-2 box-border overflow-auto outline-none"
+            rows={isMobile ? 3 : 4}
+            className={cn(
+              "w-full resize-none leading-6 p-2 box-border overflow-auto outline-none",
+              isMobile ? "h-20" : "h-24"
+            )}
             placeholder={t("home_video_prompt_placeholder")}
           />
 
@@ -591,23 +643,34 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
         </div>
 
         {/* Voice Selection */}
-        <div className="w-full h-[54px] mb-1 flex items-center justify-between border border-black/30 rounded-2xl p-1 bg-[#f4f4f4]">
+        <div
+          className={cn(
+            "w-full flex items-center justify-between border border-black/30 rounded-2xl p-1 bg-[#f4f4f4]",
+            isMobile ? "h-12 mb-0" : "h-[54px] mb-1"
+          )}
+        >
           <div className="flex-1">
             <div className="w-full h-full flex items-center justify-between relative ml-2 group">
               <button
                 type="button"
-                className="w-10 h-10 bg-white rounded-full absolute top-[-2px] left-[-2px] z-10 cursor-pointer shadow-md flex items-center justify-center"
+                className={cn(
+                  "bg-white rounded-full absolute top-[-2px] left-[-2px] z-10 cursor-pointer shadow-md flex items-center justify-center",
+                  isMobile ? "w-9 h-9" : "w-10 h-10"
+                )}
                 onClick={() => setVoiceModalOpen(true)}
               >
                 {formData.voice ? (
-                  <IconWave className="w-5 h-5" />
+                  <IconWave className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} />
                 ) : (
-                  <IconAdd className="w-5 h-5" />
+                  <IconAdd className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} />
                 )}
               </button>
               <Input
                 placeholder={t("home_please_select_voice")}
-                className="w-[calc(100%-20px)] h-9 px-[45px]  bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer"
+                className={cn(
+                  "w-[calc(100%-20px)] bg-[#fff] rounded-2xl p-2 border-none outline-none cursor-pointer",
+                  isMobile ? "h-8 px-[40px] text-sm" : "h-9 px-[45px]"
+                )}
                 value={
                   formData.voice
                     ? formData.voice.friendly_name
@@ -620,23 +683,35 @@ const CharacterCreate: React.FC<CharacterCreateProps> = ({
               {formData.voice ? (
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300 absolute right-2 shadow-md",
+                    "rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300 absolute right-2 shadow-md",
                     "bg-[#fff] cursor-pointer group ",
-                    audioStatus === "loading" && "animate-pulse"
+                    audioStatus === "loading" && "animate-pulse",
+                    isMobile ? "w-9 h-9" : "w-10 h-10"
                   )}
                   onClick={(e) => {
                     handleAudioPlay(e);
                   }}
                 >
                   {audioStatus === "loading" ? (
-                    <div className="w-6 h-6 border-2 border-[#000] border-t-transparent rounded-full animate-spin" />
+                    <div
+                      className={cn(
+                        "border-2 border-[#000] border-t-transparent rounded-full animate-spin",
+                        isMobile ? "w-5 h-5" : "w-6 h-6"
+                      )}
+                    />
                   ) : audioStatus === "playing" ? (
-                    <IconPause className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-[#000]" />
+                    <IconPause
+                      className={cn(
+                        "group-hover:scale-110 transition-transform duration-300 text-[#000]",
+                        isMobile ? "w-5 h-5" : "w-6 h-6"
+                      )}
+                    />
                   ) : (
                     <IconPlay
                       className={cn(
-                        "w-6 h-6 transition-transform duration-300 text-[#000]",
-                        currentAudioUrlRef.current && "group-hover:scale-110"
+                        "transition-transform duration-300 text-[#000]",
+                        currentAudioUrlRef.current && "group-hover:scale-110",
+                        isMobile ? "w-5 h-5" : "w-6 h-6"
                       )}
                     />
                   )}

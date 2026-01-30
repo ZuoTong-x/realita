@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/utils/style_utils";
 import DropdownMenu from "@/components/DropdownMenu";
 import RadioTabs from "@/components/RadioTabs";
+import { useMobile } from "@/provider";
 import IconModelBlack from "@/assets/svg/IconModelBlack.svg?react";
 import IconModelGray from "@/assets/svg/IconModelGray.svg?react";
 import IconArrowDownBlack from "@/assets/svg/IconArrowDownBlack.svg?react";
@@ -37,7 +38,7 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
 }) => {
   const { message } = App.useApp();
   const [selected, setSelected] = useState<ProcessedVoice | null>(null);
-
+  const { isMobile } = useMobile();
   const { i18n, t } = useTranslation();
 
   const [langFilter, setLangFilter] = useState<string>("全部");
@@ -199,8 +200,15 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     }
   };
   const renderTitle = () => (
-    <div className="flex justify-between items-center w-full pr-8 gap-4">
-      <div className="w-auto">
+    <div
+      className={cn(
+        "flex w-full gap-4",
+        isMobile
+          ? "flex-col items-start pr-0"
+          : "flex-row justify-between items-center pr-8"
+      )}
+    >
+      <div className={cn("w-auto", isMobile && "w-full")}>
         <RadioTabs
           tabsList={[
             {
@@ -221,7 +229,12 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
           }}
         />
       </div>
-      <div className="flex gap-2 justify-end items-center flex-1">
+      <div
+        className={cn(
+          "flex gap-2 items-center",
+          isMobile ? "w-full justify-between" : "justify-end flex-1"
+        )}
+      >
         <DropdownMenu<Option>
           list={languages}
           value={languages.find((l) => l.key === langFilter) || languages[0]}
@@ -277,15 +290,32 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
     </div>
   );
   const renderFooter = () => (
-    <div className="w-full flex items-center justify-end gap-3">
+    <div
+      className={cn(
+        "w-full flex items-center gap-3",
+        isMobile ? "flex-col-reverse" : "justify-end"
+      )}
+    >
       <Button
-        className="h-8 px-3 bg-white/90 border border-black/30"
+        className={cn(
+          "bg-white/90 border border-black/30",
+          isMobile ? "h-10 w-full" : "h-8 px-3"
+        )}
         onClick={onClose}
       >
-        <span className="text-sm text-[#333]">{t("common_cancel")}</span>
+        <span className={cn("text-[#333]", isMobile ? "text-base" : "text-sm")}>
+          {t("common_cancel")}
+        </span>
       </Button>
-      <Button className="h-8 px-3 bg-white/90" onClick={handleApply}>
-        <span className="text-sm text-primary">{t("common_apply")}</span>
+      <Button
+        className={cn("bg-white/90", isMobile ? "h-10 w-full" : "h-8 px-3")}
+        onClick={handleApply}
+      >
+        <span
+          className={cn("text-primary", isMobile ? "text-base" : "text-sm")}
+        >
+          {t("common_apply")}
+        </span>
       </Button>
     </div>
   );
@@ -295,19 +325,26 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
       onCancel={onClose}
       title={renderTitle()}
       centered
-      width={640}
+      width={isMobile ? undefined : 640}
       footer={renderFooter()}
       classNames={{
-        container: "w-[40rem] !rounded-2xl",
-        body: "h-[30rem] overflow-y-auto",
+        container: cn(
+          "!rounded-2xl",
+          isMobile ? "w-[95vw] max-w-[95vw] max-h-[90vh]" : "w-[40rem]"
+        ),
+        body: cn(
+          "overflow-y-auto",
+          isMobile ? "h-auto max-h-[calc(90vh-260px)]" : "h-[30rem]"
+        ),
       }}
     >
       <div
-        className={
+        className={cn(
+          "w-full mt-4",
           filteredList.length > 0
-            ? "w-full grid grid-cols-2 gap-3 mt-4"
-            : "w-full flex items-center justify-center mt-4 h-40"
-        }
+            ? cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-2")
+            : "flex items-center justify-center h-40"
+        )}
       >
         {filteredList.length > 0 ? (
           filteredList.map((v) => {
@@ -316,42 +353,66 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
               <button
                 key={v.id}
                 type="button"
-                className={`w-full p-3 rounded-[50px] border text-left flex flex-col gap-1 transition-all ${
+                className={cn(
+                  "w-full rounded-[50px] border text-left flex flex-col gap-1 transition-all",
+                  isMobile ? "p-2.5" : "p-3",
                   active
                     ? "border-[#3B3D2C] bg-[#f6f6f6]"
                     : "border-black/10 hover:border-black/20"
-                }`}
+                )}
                 onClick={() => setSelected(v)}
               >
                 <div className="flex justify-between items-center">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
+                      "rounded-[50%] flex justify-center items-center overflow-hidden transition-all duration-300",
                       "bg-[#000] cursor-pointer group hover:bg-[#333]",
-                      loadingId === v.id && "animate-pulse"
+                      loadingId === v.id && "animate-pulse",
+                      isMobile ? "w-9 h-9" : "w-10 h-10"
                     )}
                     onClick={(e) => {
                       handleAudioPlay(e, v);
                     }}
                   >
                     {loadingId === v.id ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div
+                        className={cn(
+                          "border-2 border-white border-t-transparent rounded-full animate-spin",
+                          isMobile ? "w-5 h-5" : "w-6 h-6"
+                        )}
+                      />
                     ) : playingId === v.id ? (
-                      <IconPause className="w-6 h-6 group-hover:scale-110 transition-transform duration-300 text-[#fff]" />
+                      <IconPause
+                        className={cn(
+                          "group-hover:scale-110 transition-transform duration-300 text-[#fff]",
+                          isMobile ? "w-5 h-5" : "w-6 h-6"
+                        )}
+                      />
                     ) : (
                       <IconPlay
                         className={cn(
-                          "w-6 h-6 transition-transform duration-300 text-[#fff]",
-                          currentAudioUrlRef.current && "group-hover:scale-110"
+                          "transition-transform duration-300 text-[#fff]",
+                          currentAudioUrlRef.current && "group-hover:scale-110",
+                          isMobile ? "w-5 h-5" : "w-6 h-6"
                         )}
                       />
                     )}
                   </div>
-                  <div className="flex-1 flex flex-col justify-center items-center ">
-                    <span className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-[180px] text-center">
+                  <div className="flex-1 flex flex-col justify-center items-center">
+                    <span
+                      className={cn(
+                        "font-medium text-ellipsis overflow-hidden whitespace-nowrap text-center",
+                        isMobile ? "text-sm w-[220px]" : "text-sm w-[180px]"
+                      )}
+                    >
                       {v.friendly_name}
                     </span>
-                    <span className="text-xs text-[#666] flex items-center gap-1">
+                    <span
+                      className={cn(
+                        "text-[#666] flex items-center gap-1",
+                        isMobile ? "text-[11px]" : "text-xs"
+                      )}
+                    >
                       <span>
                         {i18n.language === "zh"
                           ? v.gender?.label_zh
@@ -370,7 +431,10 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                     </span>
                   </div>
                   <div
-                    className="w-6 h-6 flex items-center justify-center cursor-pointer group/fav"
+                    className={cn(
+                      "flex items-center justify-center cursor-pointer group/fav",
+                      isMobile ? "w-5 h-5" : "w-6 h-6"
+                    )}
                     onClick={(e) => handleFavorite(e, v.id)}
                   >
                     <div
@@ -382,9 +446,13 @@ const VoiceModal: React.FC<VoiceModalProps> = ({
                       )}
                     >
                       {favoriteVoiceIds.includes(v.id) ? (
-                        <IconFavorite className="w-4 h-4" />
+                        <IconFavorite
+                          className={cn(isMobile ? "w-3.5 h-3.5" : "w-4 h-4")}
+                        />
                       ) : (
-                        <IconUnFavorite className="w-4 h-4" />
+                        <IconUnFavorite
+                          className={cn(isMobile ? "w-3.5 h-3.5" : "w-4 h-4")}
+                        />
                       )}
                     </div>
                   </div>

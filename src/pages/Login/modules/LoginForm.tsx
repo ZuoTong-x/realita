@@ -7,13 +7,16 @@ import { signInWithGoogle } from "@/api";
 import useUserStore from "@/stores/userStore";
 import type { TokenInfo } from "@/types";
 import { App } from "antd";
+import { cn } from "@/utils/style_utils";
 import { saveRefreshToken, saveToken } from "@/utils/user_util";
 
 import useCountdown from "@/hooks/useCountdown";
 import { useNavigate } from "react-router-dom";
+import { useMobile } from "@/provider";
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const { isMobile } = useMobile();
   const { t } = useTranslation();
   const { message } = App.useApp();
   const { loginStore } = useUserStore();
@@ -144,7 +147,9 @@ const LoginForm = () => {
 
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <div className="w-full max-w-[320px]">
+      <div
+        className={cn("w-full", isMobile ? "max-w-[100%]" : "max-w-[320px]")}
+      >
         <div className="flex flex-col gap-2 z-[20]">
           <span className="mx-auto text-3xl font-bold text-[#3B3D2C]">
             {t("login_login_welcome")}
