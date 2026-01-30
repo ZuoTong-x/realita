@@ -49,8 +49,14 @@ const LivePage = () => {
   // 记录进入通话时的初始积分
   const initialCreditsRef = useRef<number>(0);
   const useCreditsRef = useRef<number>(0);
-  // 视频盒子大小（取宽高中较小值的80%）
-  const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
+  // 视频盒子尺寸（根据图片比例计算）
+  const [videoBoxSize, setVideoBoxSize] = useState<{
+    width: number;
+    height: number;
+  }>({ width: 0, height: 0 });
+  const [aspectRatio, setAspectRatio] = useState<"1:1" | "16:9" | "9:16">(
+    "1:1"
+  );
 
   const {
     start: startLive,
@@ -107,6 +113,7 @@ const LivePage = () => {
       setStreamInfoErrorModalOpen(true);
       cancelGetStreamInfo();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoEnabled, startLive]);
 
   const handleStartLiveSuccess = async () => {
@@ -120,39 +127,122 @@ const LivePage = () => {
     cancelGetStreamInfo();
   };
 
+  // 根据图片宽高比选择视频输出尺寸
+  const getAspectRatio = (
+    width: number,
+    height: number
+  ): "1:1" | "16:9" | "9:16" => {
+    if (height <= 0) {
+      return "1:1";
+    }
+    const r = width / height;
+    if (r <= 25 / 32) {
+      return "9:16";
+    }
+    if (r >= 25 / 18) {
+      return "16:9";
+    }
+    return "1:1";
+  };
+
+  // 计算本地预览窗口的尺寸
+  const getPreviewSize = () => {
+    const baseSize = 200;
+    if (aspectRatio === "1:1") {
+      return { width: baseSize, height: baseSize };
+    } else if (aspectRatio === "16:9") {
+      return { width: baseSize, height: baseSize * (9 / 16) };
+    } else {
+      // 9:16
+      return { width: baseSize * (9 / 16), height: baseSize };
+    }
+  };
+
+  const previewSize = getPreviewSize();
+
   const characterRef = useRef<HTMLDivElement | null>(null);
   const {
     dragRef: userDragRef,
     position: userPos,
     setPosition: setUserPos,
   } = useDraggable({
-    elementWidth: 200,
-    elementHeight: 200,
+    elementWidth: previewSize.width,
+    elementHeight: previewSize.height,
     margin: 8,
   });
 
   useEffect(() => {
     const computeInitial = () => {
-      const elementSize = 200;
       const left = 100;
-      const top = window.innerHeight - elementSize - 100;
+      const top = window.innerHeight - previewSize.height - 100;
       setUserPos({ left, top });
     };
     const id = window.requestAnimationFrame(computeInitial);
     return () => window.cancelAnimationFrame(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewSize]);
 
-  // 计算视频盒子大小
+  // 计算视频盒子大小（根据图片比例）
   useEffect(() => {
-    const calculateVideoBoxSize = () => {
-      const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      setVideoBoxSize(minDimension * 0.8);
+    const calculateVideoBoxSize = async () => {
+      if (!bgImg) {
+        // 如果没有背景图，默认使用 1:1
+        const minDimension = Math.min(window.innerWidth, window.innerHeight);
+        const size = minDimension * 0.8;
+        setVideoBoxSize({ width: size, height: size });
+        setAspectRatio("1:1");
+        return;
+      }
+
+      // 加载图片获取宽高
+      const img = new Image();
+      img.src = bgImg;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const ratio = getAspectRatio(img.width, img.height);
+      setAspectRatio(ratio);
+
+      // 根据比例和屏幕大小计算视频容器尺寸
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      let width = 0;
+      let height = 0;
+
+      if (ratio === "1:1") {
+        const minDimension = Math.min(screenWidth, screenHeight);
+        const size = minDimension * 0.8;
+        width = size;
+        height = size;
+      } else if (ratio === "16:9") {
+        // 横屏：优先使用屏幕宽度的 80%
+        width = screenWidth * 0.8;
+        height = width * (9 / 16);
+        // 如果高度超过屏幕高度的 80%，则调整
+        if (height > screenHeight * 0.8) {
+          height = screenHeight * 0.8;
+          width = height * (16 / 9);
+        }
+      } else if (ratio === "9:16") {
+        // 竖屏：优先使用屏幕高度的 80%
+        height = screenHeight * 0.8;
+        width = height * (9 / 16);
+        // 如果宽度超过屏幕宽度的 80%，则调整
+        if (width > screenWidth * 0.8) {
+          width = screenWidth * 0.8;
+          height = width * (16 / 9);
+        }
+      }
+
+      setVideoBoxSize({ width, height });
     };
 
     calculateVideoBoxSize();
     window.addEventListener("resize", calculateVideoBoxSize);
     return () => window.removeEventListener("resize", calculateVideoBoxSize);
-  }, []);
+  }, [bgImg]);
 
   const handleCall = async () => {
     if (liveStatus === "connected") {
@@ -303,8 +393,8 @@ const LivePage = () => {
         <div
           className="relative border-[2px] border-solid border-white rounded-2xl overflow-hidden"
           style={{
-            width: videoBoxSize,
-            height: videoBoxSize,
+            width: videoBoxSize.width,
+            height: videoBoxSize.height,
           }}
         >
           {/* 拉流视频 - 一直存在 */}
@@ -325,8 +415,10 @@ const LivePage = () => {
                 <div
                   className="rounded-lg overflow-hidden"
                   style={{
-                    width: videoBoxSize * 0.3,
-                    height: videoBoxSize * 0.3,
+                    width:
+                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
+                    height:
+                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
                   }}
                 >
                   <img
@@ -423,7 +515,7 @@ const LivePage = () => {
         >
           <div
             className="border-[2px] border-solid border-white rounded-2xl overflow-hidden bg-black/20 backdrop-blur-sm"
-            style={{ width: 200, height: 200 }}
+            style={{ width: previewSize.width, height: previewSize.height }}
           >
             {videoEnabled ? (
               <video
