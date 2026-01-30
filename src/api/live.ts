@@ -1,4 +1,5 @@
 import request from "./request";
+import adminRequest from "./requestAdmin";
 import type { ApiResponse, StreamInfo } from "@/types";
 
 // 获取可用的视频流 /stream
@@ -38,5 +39,15 @@ export const stopStream = async (
       stream_id,
     },
   });
+  return response.data;
+};
+
+// 启动角色直播 /admin/v1/stream/{stream_id}
+export const startCharacterLive = async (
+  stream_id: string
+): Promise<ApiResponse<null>> => {
+  const response = await adminRequest.post<ApiResponse<null>>(
+    `/stream/${stream_id}`
+  );
   return response.data;
 };

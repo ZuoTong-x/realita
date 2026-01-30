@@ -11,6 +11,10 @@ export interface RatioItem {
 
 export interface StreamInfo {
   /**
+   * 声网Agora频道的名称。
+   */
+  channel_name: null;
+  /**
    * 上游LightX2V服务的流ID.
    */
   lightx2v_stream_id: string;
@@ -27,12 +31,15 @@ export interface StreamInfo {
    */
   stream_id: string;
   /**
-   * WebRTC WHEP协议的连接URL,用于拉流, 仅在流状态为ready时可用,否则为None.
+   * 用户在声网Agora频道的RTC Token。
    */
-  whep_url: null | string;
+  user_rtc_token: null;
   /**
-   * WebRTC WHIP协议的连接URL, 用于推流,
-   * 仅在流状态为ready时可用,否则为None.
+   * 用户在声网Agora频道的用户ID。
    */
-  whip_url: null | string;
+  user_uid: null;
+  /**
+   * 声网Agora频道的App ID。
+   */
+  app_id: string;
 }

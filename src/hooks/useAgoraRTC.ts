@@ -15,21 +15,15 @@ export type AgoraLiveStatus =
   | "error";
 
 interface UseAgoraRTCProps {
-  appId: string;
-  channel?: string;
-  token?: string | null;
-  uid?: string | number;
   enableVideo?: boolean;
   enableAudio?: boolean;
+  onUserJoined?: () => void;
 }
 
 export function useAgoraRTC({
-  appId,
-  channel,
-  token = null,
-  uid,
   enableVideo = true,
   enableAudio = true,
+  onUserJoined,
 }: UseAgoraRTCProps) {
   const [status, setStatus] = useState<AgoraLiveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +49,7 @@ export function useAgoraRTC({
       // 创建 Agora 客户端
       clientRef.current = AgoraRTC.createClient({
         mode: "rtc", // 实时通话模式
-        codec: "vp8", // 编解码格式
+        codec: "h264", // 编解码格式
       });
 
       // 监听远程用户发布事件
@@ -94,6 +88,11 @@ export function useAgoraRTC({
         console.log("用户离开", user.uid);
         remoteUsersRef.current.delete(user.uid);
       });
+      // 监听用户加入频道事件
+      clientRef.current.on("user-joined", (user) => {
+        console.log("用户加入频道", user.uid);
+        onUserJoined?.();
+      });
     }
     return clientRef.current;
   }, []);
@@ -101,44 +100,52 @@ export function useAgoraRTC({
   /**
    * 加入频道
    */
-  const join = useCallback(async () => {
-    try {
-      if (!appId) {
-        throw new Error("缺少 Agora App ID");
+  const join = useCallback(
+    async (
+      appId: string,
+      channel: string,
+      token: string,
+      uid: string | number
+    ) => {
+      try {
+        if (!appId) {
+          throw new Error("缺少 Agora App ID");
+        }
+        if (!channel) {
+          throw new Error("缺少频道名称");
+        }
+
+        setStatus("connecting");
+        setError(null);
+
+        // 初始化客户端
+        const client = initClient();
+
+        // 加入频道
+        await client.join(appId, channel, token, uid);
+        console.log("成功加入频道:", channel);
+
+        // 创建并发布本地音视频轨道
+        if (enableAudio) {
+          localAudioTrackRef.current =
+            await AgoraRTC.createMicrophoneAudioTrack();
+          await client.publish(localAudioTrackRef.current);
+        }
+
+        if (enableVideo) {
+          localVideoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
+          await client.publish(localVideoTrackRef.current);
+        }
+
+        setStatus("connected");
+      } catch (err) {
+        console.error("加入频道失败:", err);
+        setError(err instanceof Error ? err.message : "加入频道失败");
+        setStatus("error");
       }
-      if (!channel) {
-        throw new Error("缺少频道名称");
-      }
-
-      setStatus("connecting");
-      setError(null);
-
-      // 初始化客户端
-      const client = initClient();
-
-      // 加入频道
-      await client.join(appId, channel, token, uid);
-      console.log("成功加入频道:", channel);
-
-      // 创建并发布本地音视频轨道
-      if (enableAudio) {
-        localAudioTrackRef.current =
-          await AgoraRTC.createMicrophoneAudioTrack();
-        await client.publish(localAudioTrackRef.current);
-      }
-
-      if (enableVideo) {
-        localVideoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
-        await client.publish(localVideoTrackRef.current);
-      }
-
-      setStatus("connected");
-    } catch (err) {
-      console.error("加入频道失败:", err);
-      setError(err instanceof Error ? err.message : "加入频道失败");
-      setStatus("error");
-    }
-  }, [appId, channel, token, uid, enableAudio, enableVideo, initClient]);
+    },
+    [enableAudio, enableVideo, initClient]
+  );
 
   /**
    * 离开频道

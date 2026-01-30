@@ -2,6 +2,7 @@ export type RuntimeEnv = {
   VITE_API_BASE?: string;
   VITE_GOOGLE_CLIENT_ID?: string;
   VITE_APP_VERSION?: string;
+  VITE_ADMIN_BASE?: string;
 };
 
 function readWindowEnv(): RuntimeEnv {
@@ -21,5 +22,6 @@ export function getRuntimeEnv(): RuntimeEnv {
     VITE_GOOGLE_CLIENT_ID:
       win.VITE_GOOGLE_CLIENT_ID ?? import.meta.env.VITE_GOOGLE_CLIENT_ID,
     VITE_APP_VERSION: win.VITE_APP_VERSION ?? import.meta.env.VITE_APP_VERSION,
+    VITE_ADMIN_BASE: win.VITE_ADMIN_BASE ?? import.meta.env.VITE_ADMIN_BASE,
   };
 }

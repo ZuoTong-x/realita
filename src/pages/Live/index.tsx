@@ -8,13 +8,16 @@ import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
 // import IconLoading from "@/assets/svg/IconLoading.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
-import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
+// import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
+import { useAgoraRTC } from "@/hooks/useAgoraRTC";
+
 import useDraggable from "@/hooks/useDraggable";
 import {
   getAvailableStreams,
   recordStreamStartTime,
   sendStreamHeartbeat,
   stopStream,
+  startCharacterLive,
 } from "@/api";
 import { useTranslation } from "react-i18next";
 import type { StreamInfo } from "@/types";
@@ -52,73 +55,140 @@ const LivePage = () => {
   // 视频盒子大小（取宽高中较小值的80%）
   const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
 
+  const agoraInfo = useRef<{
+    app_id: string;
+    channel_name: string;
+    user_rtc_token: string;
+    user_uid: string;
+  } | null>(null);
+
+  // const {
+  //   start: startLive,
+  //   stop: stopLive,
+  //   status: liveStatus,
+  //   whipPcRef,
+  // } = useWebRTCWhipWhep({
+  //   preview: localPreviewRef,
+  //   audioOnly: !videoEnabled,
+  //   remoteVideoRef: remoteVideoRef,
+  //   onSuccess: () => handleStartLiveSuccess(),
+  // });
   const {
-    start: startLive,
-    stop: stopLive,
     status: liveStatus,
-    whipPcRef,
-  } = useWebRTCWhipWhep({
-    preview: localPreviewRef,
-    audioOnly: !videoEnabled,
-    remoteVideoRef: remoteVideoRef,
-    onSuccess: () => handleStartLiveSuccess(),
+    join,
+    leave,
+    playLocalVideo,
+    playRemoteVideo,
+    remoteUsers,
+    toggleAudio,
+    toggleVideo,
+  } = useAgoraRTC({
+    enableVideo: videoEnabled,
+    enableAudio: true,
+    onUserJoined: async () => {
+      await recordStreamStartTime(streamInfo.current!.stream_id);
+      // 记录进入通话时的初始积分
+      const currentUserInfo = useUserStore.getState().userInfo;
+      if (currentUserInfo) {
+        initialCreditsRef.current = currentUserInfo.credits;
+      }
+      run();
+      cancelGetStreamInfo();
+    },
   });
-  const getStreamInfo = useCallback(async () => {
+
+  const sendStreamHeartbeatRequest = async () => {
+    if (!streamInfo.current) return;
+    const remainingCredits = initialCreditsRef.current - useCreditsRef.current;
+    // 更新积分显示
+    updateCredits(remainingCredits);
+    const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
+    if (res.code !== 200) {
+      await leave();
+      await stopStream(streamInfo.current.stream_id);
+      cancel();
+      cancelGetStreamInfo();
+      localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
+      setStreamInfoErrorModalOpen(true);
+    } else {
+      if (res.data) {
+        // res.data 是当前通话的总消耗量
+        // 计算剩余积分 = 初始积分 - 总消耗量
+        useCreditsRef.current = res.data;
+        // 检查积分是否足够
+        if (remainingCredits < 0) {
+          message.error(t("live_no_credits"));
+          await leave();
+          await stopStream(streamInfo.current.stream_id);
+          cancel();
+          cancelGetStreamInfo();
+          localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
+          setStreamInfoErrorModalOpen(true);
+          return;
+        }
+      }
+    }
+  };
+
+  const { run, cancel } = useRequest(sendStreamHeartbeatRequest, {
+    pollingInterval: 1000,
+    pollingErrorRetryCount: 3,
+    manual: true,
+  });
+
+  const getStreamInfo = async () => {
     const res = await getAvailableStreams();
     if (res.code === 200 && res.data) {
       streamInfo.current = res.data;
       setProgress(Number(res.data.progress) * 100);
       if (
         res.data.status === "ready" &&
-        res.data.whip_url &&
-        res.data.whep_url
+        res.data.channel_name &&
+        res.data.user_rtc_token &&
+        res.data.user_uid
       ) {
-        try {
-          const constraints: MediaStreamConstraints = {
-            video: videoEnabled,
-            audio: true,
-          };
-          const local = await navigator.mediaDevices.getUserMedia(constraints);
-
-          // 🔧 验证获取到的媒体流
-          const audioTracks = local.getAudioTracks();
-          const videoTracks = local.getVideoTracks();
-          console.log(
-            `[Live] 获取到本地流: ${audioTracks.length} 个音频轨道, ${videoTracks.length} 个视频轨道`
-          );
-
-          if (audioTracks.length === 0) {
-            console.error("[Live] 错误：没有获取到音频轨道！");
-          }
-
-          if (localPreviewRef.current) {
-            localPreviewRef.current.srcObject = local;
-
-            await localPreviewRef.current.play().catch(() => {});
-          }
-          // 发起通话（WHIP/WHEP）
-          await startLive(res.data.whip_url, res.data.whep_url);
-        } catch (err) {
-          console.error("[Live] 获取媒体流失败:", err);
-          setPermModalOpen(true);
-        }
+        agoraInfo.current = {
+          app_id: res.data.app_id,
+          channel_name: res.data.channel_name,
+          user_rtc_token: res.data.user_rtc_token,
+          user_uid: res.data.user_uid,
+        };
+        join(
+          agoraInfo.current.app_id,
+          agoraInfo.current.channel_name,
+          agoraInfo.current.user_rtc_token,
+          agoraInfo.current.user_uid
+        );
+        cancelGetStreamInfo();
       }
     } else {
       setStreamInfoErrorModalOpen(true);
       cancelGetStreamInfo();
     }
-  }, [videoEnabled, startLive]);
-
-  const handleStartLiveSuccess = async () => {
-    await recordStreamStartTime(streamInfo.current!.stream_id);
-    // 记录进入通话时的初始积分
-    const currentUserInfo = useUserStore.getState().userInfo;
-    if (currentUserInfo) {
-      initialCreditsRef.current = currentUserInfo.credits;
-    }
-    run();
-    cancelGetStreamInfo();
   };
+
+  const { cancel: cancelGetStreamInfo } = useRequest(getStreamInfo, {
+    pollingInterval: 3000,
+    pollingErrorRetryCount: 3,
+  });
+
+  // 播放本地视频
+  useEffect(() => {
+    if (liveStatus === "connected" && localPreviewRef.current) {
+      playLocalVideo(localPreviewRef.current);
+    }
+  }, [liveStatus, playLocalVideo]);
+
+  // 播放远程视频
+  useEffect(() => {
+    if (liveStatus === "connected" && remoteVideoRef.current && remoteUsers) {
+      // 获取第一个远程用户（通常是 character）
+      const remoteUserIds = Array.from(remoteUsers.keys());
+      if (remoteUserIds.length > 0) {
+        playRemoteVideo(remoteUserIds[0], remoteVideoRef.current);
+      }
+    }
+  }, [liveStatus, remoteUsers, playRemoteVideo]);
 
   const characterRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -140,7 +210,7 @@ const LivePage = () => {
     };
     const id = window.requestAnimationFrame(computeInitial);
     return () => window.cancelAnimationFrame(id);
-  }, []);
+  }, [setUserPos]);
 
   // 计算视频盒子大小
   useEffect(() => {
@@ -156,129 +226,39 @@ const LivePage = () => {
 
   const handleCall = async () => {
     if (liveStatus === "connected") {
-      try {
-        await stopLive();
-        await stopStream(streamInfo.current!.stream_id);
-        cancel();
-        navigate(-1);
-      } finally {
-        // 关闭本地预览
-        const s = localPreviewRef.current?.srcObject as MediaStream | null;
-        s?.getTracks().forEach((t) => t.stop());
-        if (localPreviewRef.current) localPreviewRef.current.srcObject = null;
-      }
-    }
-  };
-  const sendStreamHeartbeatRequest = async () => {
-    if (!streamInfo.current) return;
-    const remainingCredits = initialCreditsRef.current - useCreditsRef.current;
-    // 更新积分显示
-    updateCredits(remainingCredits);
-    const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
-    if (res.code !== 200) {
-      await stopLive();
-      await stopStream(streamInfo.current.stream_id);
+      await leave();
+      await stopStream(streamInfo.current!.stream_id);
       cancel();
-      cancelGetStreamInfo();
-      localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
-      setStreamInfoErrorModalOpen(true);
-    } else {
-      if (res.data) {
-        // res.data 是当前通话的总消耗量
-        // 计算剩余积分 = 初始积分 - 总消耗量
-        useCreditsRef.current = res.data;
-        // 检查积分是否足够
-        if (remainingCredits < 0) {
-          message.error(t("live_no_credits"));
-          await stopLive();
-          await stopStream(streamInfo.current.stream_id);
-          cancel();
-          cancelGetStreamInfo();
-          localStorage.removeItem(`${characterIdFromUrl}_bgImg`);
-          setStreamInfoErrorModalOpen(true);
-          return;
-        }
-      }
+      navigate(-1);
     }
   };
 
-  // 同步 muted 状态到远端视频（确保音频控制正确）
+  // 同步 muted 状态（控制本地音频发送）
   useEffect(() => {
-    if (remoteVideoRef.current && liveStatus === "connected") {
-      remoteVideoRef.current.muted = muted;
-    }
-  }, [muted, liveStatus]);
-
-  // 监听 videoEnabled 变化，更新本地媒体流
-  useEffect(() => {
-    const updateLocalStream = async () => {
-      // 仅校验视频元素是否存在，删除所有srcObject相关前置判断
-      if (!localPreviewRef.current) {
-        console.error("本地预览视频元素未找到");
-        return;
-      }
-
-      try {
-        const constraints: MediaStreamConstraints = {
-          video: videoEnabled,
-          audio: true,
-        };
-        const newStream =
-          await navigator.mediaDevices.getUserMedia(constraints);
-
-        // 🔧 修复：同时获取音频和视频轨道
-        const newVideoTracks = newStream.getVideoTracks();
-        const newAudioTracks = newStream.getAudioTracks();
-
-        const oldStream = localPreviewRef.current
-          .srcObject as MediaStream | null;
-        if (oldStream) {
-          oldStream.getTracks().forEach((track) => {
-            if (track.readyState !== "ended") track.stop();
-          });
-
-          localPreviewRef.current.srcObject = null;
-        }
-
-        // 🔧 修复：替换音频和视频轨道到 PeerConnection
-        if (liveStatus === "connected" && whipPcRef?.current) {
-          const senders = whipPcRef.current.getSenders();
-          for (const sender of senders) {
-            if (sender.track?.kind === "video") {
-              // 替换视频轨道（如果 videoEnabled=false，则传 null 关闭视频）
-              await sender.replaceTrack(newVideoTracks[0] || null);
-            } else if (sender.track?.kind === "audio") {
-              // 🔧 关键修复：替换音频轨道，确保音频持续发送
-              if (newAudioTracks[0]) {
-                await sender.replaceTrack(newAudioTracks[0]);
-              }
-            }
-          }
-        }
-
-        localPreviewRef.current.srcObject = newStream;
-        await localPreviewRef.current.play();
-      } catch {
-        message.error(t("live_permission_denied"));
-      }
-    };
-
-    // 🔧 修复：无论 videoEnabled 是 true 还是 false，都要更新（因为可能需要更新音频）
     if (liveStatus === "connected") {
-      updateLocalStream();
+      toggleAudio(!muted);
     }
-  }, [videoEnabled, liveStatus, message, t, whipPcRef]);
+  }, [muted, liveStatus, toggleAudio]);
 
-  const { run, cancel } = useRequest(sendStreamHeartbeatRequest, {
-    pollingInterval: 1000,
-    pollingErrorRetryCount: 3,
-    manual: true,
-  });
-  const { cancel: cancelGetStreamInfo } = useRequest(getStreamInfo, {
-    pollingInterval: 3000,
-    pollingErrorRetryCount: 3,
-  });
+  // 监听 videoEnabled 变化，切换视频开关
+  useEffect(() => {
+    if (liveStatus === "connected") {
+      toggleVideo(videoEnabled);
+    }
+  }, [videoEnabled, liveStatus, toggleVideo]);
 
+  const [lightx2v_rtc_token, setLightx2v_rtc_token] = useState<string>("");
+  const [lightx2v_uid, setLightx2v_uid] = useState<string>("");
+  const [app_id, setApp_id] = useState<string>("");
+
+  const testStartCharacterLive = async () => {
+    const res = await startCharacterLive(app_id);
+    if (res.code === 200) {
+      message.success("启动角色直播成功");
+    } else {
+      message.error("启动角色直播失败");
+    }
+  };
   return (
     <div className="relative w-full min-h-screen flex items-center justify-center">
       {bgImg ? (
@@ -444,7 +424,29 @@ const LivePage = () => {
           </div>
         </div>
       )}
-
+      <div className="fixed top-30 left-0 w-40 h-40 bg-red-500 flex items-center justify-center gap-6 z-20">
+        <div className="text-white/80 text-sm">
+          <button onClick={testStartCharacterLive}>启动角色直播</button>
+          app_id
+          <input type="text" value={app_id} />
+          lightx2v_uid
+          <input type="text" value={lightx2v_uid} />
+          lightx2v_rtc_token
+          <input type="text" value={lightx2v_rtc_token} />
+          <button
+            onClick={() =>
+              join(
+                agoraInfo.current!.app_id,
+                agoraInfo.current!.channel_name,
+                lightx2v_rtc_token,
+                lightx2v_uid
+              )
+            }
+          >
+            join lightx2v
+          </button>
+        </div>
+      </div>
       <Modal
         open={permModalOpen}
         centered
@@ -452,20 +454,14 @@ const LivePage = () => {
         okText={t("common_confirm")}
         cancelButtonProps={{ style: { display: "none" } }}
         maskClosable={false}
-        onOk={async () => {
-          try {
-            // 明确请求权限（用户点击确认后触发）
-            const constraints: MediaStreamConstraints = {
-              video: videoEnabled,
-              audio: true,
-            };
-            await navigator.mediaDevices.getUserMedia(constraints);
-            setPermModalOpen(false);
-          } catch {
-            message.error(t("live_permission_denied"));
-          }
+        onOk={() => {
+          setPermModalOpen(false);
+          navigate(-1);
         }}
-        onCancel={() => setPermModalOpen(false)}
+        onCancel={() => {
+          setPermModalOpen(false);
+          navigate(-1);
+        }}
       >
         <div className="text-[#3B3D2C]">{t("live_permission_desc")}</div>
       </Modal>
