@@ -8,15 +8,18 @@ import { useTranslation } from "react-i18next";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconChat from "@/assets/svg/IconChat.svg?react";
+import IconPlay from "@/assets/svg/IconPlay.svg?react";
+// import IconPause from "@/assets/svg/IconPause.svg?react";
 import LikeTag from "@/components/LikeTag";
 import useCharacterListStore from "@/stores/characterListStore";
 import { useMobile } from "@/provider";
 
 type CharacterSwiperProps = {
   onChat: (character: CharacterInfo) => void;
+  pauseVideo?: boolean;
 };
 
-const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
+const CharacterSwiper = ({ onChat, pauseVideo }: CharacterSwiperProps) => {
   const {
     characterList,
     currentCharacter,
@@ -27,10 +30,13 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const { isMobile } = useMobile();
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [mutedAll, setMutedAll] = useState<boolean>(false);
+  const [videoPaused, setVideoPaused] = useState<boolean>(false);
 
   // 触摸滑动相关状态
   const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const touchEndY = useRef<number>(0);
 
   const visibleList = useMemo(() => {
     if (!currentCharacter || characterList.length === 0) return [];
@@ -178,6 +184,25 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
     onChat(character);
   };
 
+  const handleVideoClick = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (!isMobile) return;
+
+    const centerIdx = visibleList.findIndex((item) => item.offset === 0);
+    if (centerIdx === -1) return;
+
+    const video = videoRefs.current[centerIdx];
+    if (!video) return;
+
+    if (video.paused) {
+      video.play();
+      setVideoPaused(false);
+    } else {
+      video.pause();
+      setVideoPaused(true);
+    }
+  };
+
   useEffect(() => {
     videoRefs.current.forEach((v) => {
       if (v) v.muted = mutedAll;
@@ -190,10 +215,34 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
       const centerIdx = visibleList.findIndex((item) => item.offset === 0);
       if (centerIdx !== -1) {
         playOnly(centerIdx);
+        setVideoPaused(false);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, currentCharacter]);
+
+  // 当弹窗打开时暂停视频
+  useEffect(() => {
+    if (pauseVideo) {
+      videoRefs.current.forEach((v) => {
+        if (v && !v.paused) {
+          v.pause();
+        }
+      });
+      setVideoPaused(true);
+    } else {
+      // 弹窗关闭时，如果是移动端且有中心卡片，则恢复播放
+      if (isMobile && visibleList.length > 0) {
+        const centerIdx = visibleList.findIndex((item) => item.offset === 0);
+        if (centerIdx !== -1) {
+          const video = videoRefs.current[centerIdx];
+          if (video && video.paused) {
+            video.play();
+            setVideoPaused(false);
+          }
+        }
+      }
+    }
+  }, [pauseVideo, isMobile, visibleList]);
 
   const renderSkeleton = () => {
     // 移动端只显示中心卡片的骨架屏
@@ -281,19 +330,26 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isMobile) return;
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isMobile) return;
     touchEndX.current = e.touches[0].clientX;
+    touchEndY.current = e.touches[0].clientY;
   };
 
   const handleTouchEnd = () => {
     if (!isMobile) return;
     const diffX = touchStartX.current - touchEndX.current;
+    const diffY = touchStartY.current - touchEndY.current;
     const minSwipeDistance = 50; // 最小滑动距离
 
-    if (Math.abs(diffX) > minSwipeDistance) {
+    // 计算总移动距离
+    const totalDistance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+    // 确保用户真的滑动了，并且水平滑动距离大于垂直滑动距离
+    if (totalDistance > minSwipeDistance && Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX > 0) {
         // 左滑，下一个
         goNext();
@@ -305,7 +361,9 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
 
     // 重置
     touchStartX.current = 0;
+    touchStartY.current = 0;
     touchEndX.current = 0;
+    touchEndY.current = 0;
   };
 
   return (
@@ -357,6 +415,23 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                       }
                     }
                   }}
+                  onClick={isCenter && isMobile ? handleVideoClick : undefined}
+                  onTouchEnd={
+                    isCenter && isMobile
+                      ? (e) => {
+                          // 确保不是滑动操作
+                          const diffX = Math.abs(
+                            touchStartX.current - touchEndX.current
+                          );
+                          const diffY = Math.abs(
+                            touchStartY.current - touchEndY.current
+                          );
+                          if (diffX < 10 && diffY < 10) {
+                            handleVideoClick(e);
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   <video
                     src={character.video?.url || ""}
@@ -372,6 +447,15 @@ const CharacterSwiper = ({ onChat }: CharacterSwiperProps) => {
                   >
                     <source src={character.video?.url || ""} type="video/mp4" />
                   </video>
+
+                  {/* 移动端暂停时显示暂停图标 */}
+                  {isCenter && isMobile && videoPaused && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                      <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+                        <IconPlay className="w-8 h-8 text-white ml-1" />
+                      </div>
+                    </div>
+                  )}
 
                   {isCenter && (
                     <>

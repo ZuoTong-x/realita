@@ -116,6 +116,7 @@ const HomePage = () => {
           onChat={(character) => {
             handleChat(character);
           }}
+          pauseVideo={createOpen || previewOpen}
         />
       </div>
       {/** 侧边栏   */}

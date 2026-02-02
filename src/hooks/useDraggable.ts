@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Point = { left: number; top: number };
 
@@ -21,12 +21,21 @@ export default function useDraggable(
 
   const dragRef = useRef<HTMLElement | null>(null);
   const [position, setPosition] = useState<Point | null>(null);
+  const positionRef = useRef<Point | null>(null);
   const dragStateRef = useRef<null | {
     startX: number;
     startY: number;
     baseLeft: number;
     baseTop: number;
   }>(null);
+
+  // 同步 position 到 ref
+  useEffect(() => {
+    positionRef.current = position;
+  }, [position]);
+
+  // 记忆 position 是否已设置
+  const hasPosition = useMemo(() => position !== null, [position]);
 
   const clamp = useCallback(
     (pt: Point): Point => {
@@ -44,27 +53,29 @@ export default function useDraggable(
 
   useEffect(() => {
     const el = dragRef.current;
-    if (!el) return;
+    if (!el || !positionRef.current) return;
 
     const onMouseDown = (e: MouseEvent) => {
-      if (!position) return;
+      const currentPosition = positionRef.current;
+      if (!currentPosition) return;
       dragStateRef.current = {
         startX: e.clientX,
         startY: e.clientY,
-        baseLeft: position.left,
-        baseTop: position.top,
+        baseLeft: currentPosition.left,
+        baseTop: currentPosition.top,
       };
       e.preventDefault();
     };
     const onTouchStart = (e: TouchEvent) => {
-      if (!position) return;
+      const currentPosition = positionRef.current;
+      if (!currentPosition) return;
       const t = e.touches[0];
       if (!t) return;
       dragStateRef.current = {
         startX: t.clientX,
         startY: t.clientY,
-        baseLeft: position.left,
-        baseTop: position.top,
+        baseLeft: currentPosition.left,
+        baseTop: currentPosition.top,
       };
       e.preventDefault();
     };
@@ -74,7 +85,7 @@ export default function useDraggable(
       el.removeEventListener("mousedown", onMouseDown);
       el.removeEventListener("touchstart", onTouchStart);
     };
-  }, [position]);
+  }, [hasPosition]); // 依赖 position 是否存在，而非具体值
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {

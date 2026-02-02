@@ -113,7 +113,6 @@ const LivePage = () => {
       setStreamInfoErrorModalOpen(true);
       cancelGetStreamInfo();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoEnabled, startLive]);
 
   const handleStartLiveSuccess = async () => {
@@ -171,7 +170,11 @@ const LivePage = () => {
     margin: 8,
   });
 
+  // 只在首次挂载时设置初始位置
   useEffect(() => {
+    // 如果已经有位置了，就不再重置
+    if (userPos) return;
+
     const computeInitial = () => {
       const left = 100;
       const top = window.innerHeight - previewSize.height - 100;
@@ -179,8 +182,7 @@ const LivePage = () => {
     };
     const id = window.requestAnimationFrame(computeInitial);
     return () => window.cancelAnimationFrame(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSize]);
+  }, []); // 只在首次挂载时运行
 
   // 计算视频盒子大小（根据图片比例）
   useEffect(() => {
