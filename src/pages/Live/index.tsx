@@ -1,14 +1,12 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import CommonButton from "@/components/Common/Button";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
 import IconAudioOn from "@/assets/svg/IconAudioON.svg?react";
 import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
-// import IconLoading from "@/assets/svg/IconLoading.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
-// import { useWebRTCWhipWhep } from "@/hooks/useLiveWebRTC";
 import { useAgoraRTC } from "@/hooks/useAgoraRTC";
 
 import useDraggable from "@/hooks/useDraggable";
@@ -17,7 +15,6 @@ import {
   recordStreamStartTime,
   sendStreamHeartbeat,
   stopStream,
-  startCharacterLive,
 } from "@/api";
 import { useTranslation } from "react-i18next";
 import type { StreamInfo } from "@/types";
@@ -25,6 +22,23 @@ import { App, Modal, Progress } from "antd";
 import { useRequest } from "ahooks";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
+
+// 预览窗口尺寸（用户本地视频）
+const previewSize = {
+  width: 200,
+  height: 200,
+};
+
+// 判断图片宽高比
+const getAspectRatio = (
+  width: number,
+  height: number
+): "1:1" | "16:9" | "9:16" => {
+  const ratio = width / height;
+  if (Math.abs(ratio - 1) < 0.1) return "1:1";
+  if (ratio > 1.5) return "16:9";
+  return "9:16";
+};
 
 const LivePage = () => {
   const { message } = App.useApp();
@@ -52,8 +66,11 @@ const LivePage = () => {
   // 记录进入通话时的初始积分
   const initialCreditsRef = useRef<number>(0);
   const useCreditsRef = useRef<number>(0);
-  // 视频盒子大小（取宽高中较小值的80%）
-  const [videoBoxSize, setVideoBoxSize] = useState<number>(0);
+  // 视频盒子尺寸（根据图片比例计算）
+  const [videoBoxSize, setVideoBoxSize] = useState<{
+    width: number;
+    height: number;
+  }>({ width: 0, height: 0 });
 
   const agoraInfo = useRef<{
     app_id: string;
@@ -136,7 +153,7 @@ const LivePage = () => {
     manual: true,
   });
 
-  const getStreamInfo = async () => {
+  const getStreamInfoRequest = async () => {
     const res = await getAvailableStreams();
     if (res.code === 200 && res.data) {
       streamInfo.current = res.data;
@@ -167,28 +184,14 @@ const LivePage = () => {
     }
   };
 
-  const { cancel: cancelGetStreamInfo } = useRequest(getStreamInfo, {
-    pollingInterval: 3000,
-    pollingErrorRetryCount: 3,
-  });
-
-  // 播放本地视频
-  useEffect(() => {
-    if (liveStatus === "connected" && localPreviewRef.current) {
-      playLocalVideo(localPreviewRef.current);
+  const { run: runGetStreamInfo, cancel: cancelGetStreamInfo } = useRequest(
+    getStreamInfoRequest,
+    {
+      pollingInterval: 1000,
+      pollingErrorRetryCount: 3,
+      manual: true,
     }
-  }, [liveStatus, playLocalVideo]);
-
-  // 播放远程视频
-  useEffect(() => {
-    if (liveStatus === "connected" && remoteVideoRef.current && remoteUsers) {
-      // 获取第一个远程用户（通常是 character）
-      const remoteUserIds = Array.from(remoteUsers.keys());
-      if (remoteUserIds.length > 0) {
-        playRemoteVideo(remoteUserIds[0], remoteVideoRef.current);
-      }
-    }
-  }, [liveStatus, remoteUsers, playRemoteVideo]);
+  );
 
   const characterRef = useRef<HTMLDivElement | null>(null);
   const {
@@ -196,33 +199,85 @@ const LivePage = () => {
     position: userPos,
     setPosition: setUserPos,
   } = useDraggable({
-    elementWidth: 200,
-    elementHeight: 200,
+    elementWidth: previewSize.width,
+    elementHeight: previewSize.height,
     margin: 8,
   });
 
+  // 只在首次挂载时设置初始位置
   useEffect(() => {
+    // 如果已经有位置了，就不再重置
+    if (userPos) return;
+
     const computeInitial = () => {
-      const elementSize = 200;
       const left = 100;
-      const top = window.innerHeight - elementSize - 100;
+      const top = window.innerHeight - previewSize.height - 100;
       setUserPos({ left, top });
     };
     const id = window.requestAnimationFrame(computeInitial);
     return () => window.cancelAnimationFrame(id);
-  }, [setUserPos]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 计算视频盒子大小
+  // 计算视频盒子大小（根据图片比例）
   useEffect(() => {
-    const calculateVideoBoxSize = () => {
-      const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      setVideoBoxSize(minDimension * 0.8);
+    const calculateVideoBoxSize = async () => {
+      if (!bgImg) {
+        // 如果没有背景图，默认使用 1:1
+        const minDimension = Math.min(window.innerWidth, window.innerHeight);
+        const size = minDimension * 0.8;
+        setVideoBoxSize({ width: size, height: size });
+        return;
+      }
+
+      // 加载图片获取宽高
+      const img = new Image();
+      img.src = bgImg;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const ratio = getAspectRatio(img.width, img.height);
+
+      // 根据比例和屏幕大小计算视频容器尺寸
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      let width = 0;
+      let height = 0;
+
+      if (ratio === "1:1") {
+        const minDimension = Math.min(screenWidth, screenHeight);
+        const size = minDimension * 0.8;
+        width = size;
+        height = size;
+      } else if (ratio === "16:9") {
+        // 横屏：优先使用屏幕宽度的 80%
+        width = screenWidth * 0.8;
+        height = width * (9 / 16);
+        // 如果高度超过屏幕高度的 80%，则调整
+        if (height > screenHeight * 0.8) {
+          height = screenHeight * 0.8;
+          width = height * (16 / 9);
+        }
+      } else if (ratio === "9:16") {
+        // 竖屏：优先使用屏幕高度的 80%
+        height = screenHeight * 0.8;
+        width = height * (9 / 16);
+        // 如果宽度超过屏幕宽度的 80%，则调整
+        if (width > screenWidth * 0.8) {
+          width = screenWidth * 0.8;
+          height = width * (16 / 9);
+        }
+      }
+
+      setVideoBoxSize({ width, height });
     };
 
     calculateVideoBoxSize();
     window.addEventListener("resize", calculateVideoBoxSize);
     return () => window.removeEventListener("resize", calculateVideoBoxSize);
-  }, []);
+  }, [bgImg]);
 
   const handleCall = async () => {
     if (liveStatus === "connected") {
@@ -247,20 +302,37 @@ const LivePage = () => {
     }
   }, [videoEnabled, liveStatus, toggleVideo]);
 
-  const [lightx2v_rtc_token, setLightx2v_rtc_token] = useState<string>("");
-  const [lightx2v_uid, setLightx2v_uid] = useState<string>("");
-  const [app_id, setApp_id] = useState<string>("");
+  // 初始化：开始轮询获取流信息
+  useEffect(() => {
+    runGetStreamInfo();
+    return () => {
+      cancelGetStreamInfo();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const testStartCharacterLive = async () => {
-    const res = await startCharacterLive(app_id);
-    if (res.code === 200) {
-      message.success("启动角色直播成功");
-    } else {
-      message.error("启动角色直播失败");
+  // 本地视频播放
+  useEffect(() => {
+    if (liveStatus === "connected" && localPreviewRef.current && videoEnabled) {
+      playLocalVideo(localPreviewRef.current);
     }
-  };
+  }, [liveStatus, videoEnabled, playLocalVideo]);
+
+  // 远程视频播放
+  useEffect(() => {
+    if (liveStatus === "connected" && remoteVideoRef.current) {
+      const remoteUserIds = Array.from(remoteUsers.keys());
+      if (remoteUserIds.length > 0) {
+        playRemoteVideo(remoteUserIds[0], remoteVideoRef.current);
+      }
+    }
+  }, [liveStatus, remoteUsers, playRemoteVideo]);
+
   return (
-    <div className="relative w-full min-h-screen flex items-center justify-center">
+    <div
+      className="relative w-full min-h-screen flex items-center justify-center"
+      style={{ overflow: "hidden", height: "100vh" }}
+    >
       {bgImg ? (
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <img
@@ -283,8 +355,8 @@ const LivePage = () => {
         <div
           className="relative border-[2px] border-solid border-white rounded-2xl overflow-hidden"
           style={{
-            width: videoBoxSize,
-            height: videoBoxSize,
+            width: videoBoxSize.width,
+            height: videoBoxSize.height,
           }}
         >
           {/* 拉流视频 - 一直存在 */}
@@ -305,8 +377,10 @@ const LivePage = () => {
                 <div
                   className="rounded-lg overflow-hidden"
                   style={{
-                    width: videoBoxSize * 0.3,
-                    height: videoBoxSize * 0.3,
+                    width:
+                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
+                    height:
+                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
                   }}
                 >
                   <img
@@ -397,13 +471,24 @@ const LivePage = () => {
 
       {userPos && (
         <div
-          className="absolute cursor-move z-30"
-          style={{ left: userPos.left, top: userPos.top, touchAction: "none" }}
+          className="absolute z-30"
+          style={{
+            left: userPos.left,
+            top: userPos.top,
+            touchAction: "none",
+            cursor: "move",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+          }}
           ref={userDragRef as React.RefObject<HTMLDivElement>}
         >
           <div
             className="border-[2px] border-solid border-white rounded-2xl overflow-hidden bg-black/20 backdrop-blur-sm"
-            style={{ width: 200, height: 200 }}
+            style={{
+              width: previewSize.width,
+              height: previewSize.height,
+              pointerEvents: "auto",
+            }}
           >
             {videoEnabled ? (
               <video
@@ -412,9 +497,13 @@ const LivePage = () => {
                 playsInline
                 muted
                 autoPlay
+                style={{ pointerEvents: "none" }}
               />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer select-none bg-black">
+              <div
+                className="w-full h-full flex flex-col items-center justify-center gap-2 select-none bg-black"
+                style={{ pointerEvents: "none" }}
+              >
                 <IconCamera className="w-10 h-10 text-white/80" />
                 <div className="text-white/80 text-sm">
                   {t("common_open_camera")}
@@ -424,29 +513,7 @@ const LivePage = () => {
           </div>
         </div>
       )}
-      <div className="fixed top-30 left-0 w-40 h-40 bg-red-500 flex items-center justify-center gap-6 z-20">
-        <div className="text-white/80 text-sm">
-          <button onClick={testStartCharacterLive}>启动角色直播</button>
-          app_id
-          <input type="text" value={app_id} />
-          lightx2v_uid
-          <input type="text" value={lightx2v_uid} />
-          lightx2v_rtc_token
-          <input type="text" value={lightx2v_rtc_token} />
-          <button
-            onClick={() =>
-              join(
-                agoraInfo.current!.app_id,
-                agoraInfo.current!.channel_name,
-                lightx2v_rtc_token,
-                lightx2v_uid
-              )
-            }
-          >
-            join lightx2v
-          </button>
-        </div>
-      </div>
+
       <Modal
         open={permModalOpen}
         centered

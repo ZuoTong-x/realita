@@ -21,11 +21,14 @@ import {
   getPublicCharacterList,
 } from "@/api";
 import { Ratio } from "@/types/Live";
+import { useMobile } from "@/provider";
+import { cn } from "@/utils/style_utils";
 
 // Like Tag Component with animation
 
 const UserPage = () => {
   const { t } = useTranslation();
+  const { isMobile } = useMobile();
   const [activeValue, setActiveValue] = useState<string>("assets");
   const [createOpen, setCreateOpen] = useState(false);
   const [createCharacterInfo, setCreateCharacterInfo] =
@@ -121,21 +124,49 @@ const UserPage = () => {
   }, []);
 
   return (
-    <div className="w-full h-full min-w-[800px] max-w-[1280px] mx-auto flex flex-col justify-start items-center default-bg-container relative px-10 pt-24 pb-4 gap-6">
+    <div
+      className={cn(
+        "w-full h-full mx-auto flex flex-col justify-start items-center default-bg-container relative gap-6",
+        isMobile
+          ? "min-w-[100vw] px-4 pt-20 pb-4"
+          : "min-w-[800px] max-w-[1280px] px-10 pt-24 pb-4"
+      )}
+    >
       <div className="w-full flex">
         <div>
-          <Avatar src={userInfo?.avatar_url} size={58} />
+          <Avatar src={userInfo?.avatar_url} size={isMobile ? 48 : 58} />
         </div>
-        <div className="flex-1 ml-4 flex flex-col justify-between items-start py-1">
-          <div className="text-lg font-medium text-[#32333D]">
+        <div
+          className={cn(
+            "flex-1 flex flex-col justify-between items-start py-1",
+            isMobile ? "ml-3" : "ml-4"
+          )}
+        >
+          <div
+            className={cn(
+              "font-medium text-[#32333D]",
+              isMobile ? "text-base" : "text-lg"
+            )}
+          >
             {userInfo?.username}
           </div>
-          <div className="text-sm text-[#B1B6BD]">{userInfo?.email}</div>
+          <div
+            className={cn("text-[#B1B6BD]", isMobile ? "text-xs" : "text-sm")}
+          >
+            {userInfo?.email}
+          </div>
         </div>
         <div className="py-1 flex-col justify-between items-end">
           <CommonButton size="small" onClick={handleLogOut}>
-            <span className="text-sm font-medium text-[#333] flex items-center gap-2 justify-center px-3">
-              <IconLogout className="w-3 h-3" />
+            <span
+              className={cn(
+                "font-medium text-[#333] flex items-center gap-2 justify-center",
+                isMobile ? "text-xs px-2" : "text-sm px-3"
+              )}
+            >
+              <IconLogout
+                className={cn(isMobile ? "w-2.5 h-2.5" : "w-3 h-3")}
+              />
               {t("login_login_out")}
             </span>
           </CommonButton>
@@ -152,34 +183,64 @@ const UserPage = () => {
           }}
         />
       </div>
-      <div className="w-full flex-1 overflow-y-auto custom-scrollbar min-h-0 pr-2">
+      <div
+        className={cn(
+          "w-full flex-1 overflow-y-auto custom-scrollbar min-h-0",
+          isMobile ? "pr-0" : "pr-2"
+        )}
+      >
         <List
-          grid={{ gutter: 16, column: 4 }}
+          grid={{
+            gutter: isMobile ? 12 : 16,
+            column: isMobile ? 2 : 4,
+          }}
           dataSource={characterList}
           renderItem={(item) => (
             <List.Item key={item.character_id}>
               <Card className="w-full h-full cursor-pointer user-card-item transition-all duration-300">
-                <div className="w-full flex flex-col gap-2 relative group">
+                <div
+                  className={cn(
+                    "w-full flex flex-col relative group",
+                    isMobile ? "gap-1.5" : "gap-2"
+                  )}
+                >
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden">
                     <img
                       src={item.image.url}
                       alt={item.character_name || ""}
                       className="w-full h-full object-cover"
                     />
-                    {/* Chat button overlay */}
-                    <div className="absolute inset-0 flex items-end justify-center bg-black/0 group-hover:bg-black/20 transition-all duration-300 opacity-0 group-hover:opacity-100">
+                    {/* Chat button overlay - 移动端始终显示，桌面端 hover 显示 */}
+                    <div
+                      className={cn(
+                        "absolute inset-0 flex items-end justify-center bg-black/0 transition-all duration-300",
+                        isMobile
+                          ? "opacity-100"
+                          : "group-hover:bg-black/20 opacity-0 group-hover:opacity-100"
+                      )}
+                    >
                       <CommonButton
-                        size="large"
-                        className="h-10 px-0 hover:scale-110 transition-transform duration-300 mb-4"
+                        size={isMobile ? "middle" : "large"}
+                        className={cn(
+                          "px-0 hover:scale-110 transition-transform duration-300",
+                          isMobile ? "h-8 mb-2" : "h-10 mb-4"
+                        )}
                         borderRadiusPx={54}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleChat(item);
                         }}
                       >
-                        <span className="text-xl font-medium text-[#333] flex items-center gap-4 justify-center px-6">
+                        <span
+                          className={cn(
+                            "font-medium text-[#333] flex items-center gap-2 justify-center",
+                            isMobile ? "text-sm px-3" : "text-xl gap-4 px-6"
+                          )}
+                        >
                           {t("common_chat")}
-                          <IconChat className="w-6 h-4" />
+                          <IconChat
+                            className={cn(isMobile ? "w-4 h-3" : "w-6 h-4")}
+                          />
                         </span>
                       </CommonButton>
                     </div>
@@ -200,11 +261,26 @@ const UserPage = () => {
                     </div>
                   )}
 
-                  <div className="w-full flex flex-col gap-1">
-                    <div className="text-base font-semibold text-[#32333D] line-clamp-1">
+                  <div
+                    className={cn(
+                      "w-full flex flex-col",
+                      isMobile ? "gap-0.5" : "gap-1"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "font-semibold text-[#32333D] line-clamp-1",
+                        isMobile ? "text-sm" : "text-base"
+                      )}
+                    >
                       {item.character_name}
                     </div>
-                    <div className="text-xs text-[#B1B6BD] h-10 line-clamp-2 leading-relaxed">
+                    <div
+                      className={cn(
+                        "text-[#B1B6BD] line-clamp-2 leading-relaxed",
+                        isMobile ? "text-[11px] h-8" : "text-xs h-10"
+                      )}
+                    >
                       {item.llm_prompt}
                     </div>
                   </div>

@@ -60,7 +60,7 @@
   "home_service_not_started": "Service is not started",
   "home_llm_prompt": "LLM Prompt",
   "home_video_prompt": "Video Prompt",
-  "home_llm_prompt_placeholder": "Please enter LLM prompt...",
+  "home_llm_prompt_placeholder": " Please enter the character profile description....",
   "home_video_prompt_placeholder": "Please enter video prompt...",
   "home_select_voice": "Select Voice",
   "home_create_character_success": "Character created successfully",

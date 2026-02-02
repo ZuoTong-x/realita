@@ -7,6 +7,8 @@ import CharacterSlider from "./modules/CharacterSlider";
 import CharacterCreate from "./modules/CharacterCreate";
 import CharacterPreview from "./modules/CharacterPreview";
 
+import { useMobile } from "@/provider";
+
 import {
   getPublicCharacterList,
   getNonPublicCharacterList,
@@ -15,8 +17,10 @@ import {
 import useCharacterListStore from "@/stores/characterListStore";
 import type { CharacterInfo } from "@/types/Character";
 import { Ratio } from "@/types/Live";
+import { cn } from "@/utils/style_utils";
 
 const HomePage = () => {
+  const { isMobile } = useMobile();
   const { t } = useTranslation();
   const {
     characterList,
@@ -100,17 +104,28 @@ const HomePage = () => {
     init();
   };
   return (
-    <div className="w-full h-full min-w-[800px] flex flex-col justify-between items-center default-bg-container relative">
+    <div
+      className={cn(
+        "w-full h-full flex flex-col justify-between items-center default-bg-container relative",
+        isMobile ? "min-w-[100vw]" : "min-w-[800px]"
+      )}
+    >
       {/** 角色列表 */}
       <div className="flex-1 w-full h-full ">
         <CharacterSwiper
           onChat={(character) => {
             handleChat(character);
           }}
+          pauseVideo={createOpen || previewOpen}
         />
       </div>
       {/** 侧边栏   */}
-      <div className="absolute top-[50%] translate-y-[-50%] right-5 h-140 w-20 z-[22]">
+      <div
+        className={cn(
+          "absolute top-[50%] translate-y-[-50%] right-5 h-140 w-20 z-[22]",
+          isMobile ? "hidden" : "block"
+        )}
+      >
         <CharacterSlider
           characterList={characterList}
           currentCharacter={currentCharacter}

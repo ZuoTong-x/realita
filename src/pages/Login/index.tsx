@@ -9,9 +9,13 @@ import type { Examples } from "@/types/Login";
 import VideoCallOverlay from "./modules/VideoCallOverlay";
 import GalleryColumn from "./modules/GalleryColumn";
 
+import { useMobile } from "@/provider";
+import { cn } from "@/utils/style_utils";
+
 const NUM_COLUMNS = 3;
 
 const LoginPage = () => {
+  const { isMobile } = useMobile();
   const [muted, setMuted] = useState(true);
   const [exampleList, setExampleList] = useState<Examples[][]>([[], [], []]);
 
@@ -64,12 +68,22 @@ const LoginPage = () => {
   return (
     <div className="relative w-full min-h-screen flex login-container animate-bg-position animate-bg max-w-[1680px] mx-auto">
       {/* Left: login area */}
-      <section className="relative w-[648px] z-20 h-screen flex items-center justify-center px-10 bg-transparent">
+      <section
+        className={cn(
+          "relative z-20 h-screen flex items-center justify-center bg-transparent",
+          isMobile ? "w-[100vw] px-0 flex-1" : "w-[648px] px-10"
+        )}
+      >
         <LoginForm />
       </section>
 
       {/* Right: gallery with rotating columns and video overlay */}
-      <section className="relative flex-1 overflow-visible p-5 pt-24 bg-transparent">
+      <section
+        className={cn(
+          "relative flex-1 overflow-visible p-5 pt-24 bg-transparent",
+          isMobile ? "hidden" : "block"
+        )}
+      >
         <div
           className="relative flex justify-center items-start z-10"
           style={{
@@ -84,15 +98,17 @@ const LoginPage = () => {
         </div>
 
         {/* Video call overlay */}
-        <VideoCallOverlay
-          muted={muted}
-          userStream={userStream}
-          cameraGranted={cameraGranted}
-          userVideoRef={userVideoRef}
-          onToggleCamera={handleToggleCamera}
-          onToggleMute={handleToggleMute}
-          onStartCamera={startCamera}
-        />
+        {!isMobile && (
+          <VideoCallOverlay
+            muted={muted}
+            userStream={userStream}
+            cameraGranted={cameraGranted}
+            userVideoRef={userVideoRef}
+            onToggleCamera={handleToggleCamera}
+            onToggleMute={handleToggleMute}
+            onStartCamera={startCamera}
+          />
+        )}
       </section>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { cn } from "@/utils/style_utils";
+import { useMobile } from "@/provider";
 
 type DropdownMenuProps<T> = {
   list: T[];
@@ -42,6 +43,7 @@ const DropdownMenu = <T,>({
   buttonClassName,
   disabled,
 }: DropdownMenuProps<T>) => {
+  const { isMobile } = useMobile();
   const [open, setOpen] = useState(false);
   const isDisabled = disabled ?? list.length <= 1;
 
@@ -109,6 +111,7 @@ const DropdownMenu = <T,>({
       menu={{ items: menuItems }}
       open={open}
       onOpenChange={setOpen}
+      trigger={isMobile ? ["click"] : ["hover"]}
     >
       <button
         className={cn(
@@ -118,7 +121,9 @@ const DropdownMenu = <T,>({
         )}
         onClick={(e) => {
           e.stopPropagation();
-          if (!isDisabled) {
+          // 移动端由 Dropdown trigger="click" 自动处理
+          // 桌面端手动切换 open 状态
+          if (!isDisabled && !isMobile) {
             setOpen(!open);
           }
         }}

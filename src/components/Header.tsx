@@ -1,5 +1,3 @@
-import IconLogoName from "@/assets/svg/IconLogoName.svg?react";
-
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { App, Popover, Statistic } from "antd";
@@ -11,6 +9,8 @@ import { getLanguage, saveLanguage } from "../utils/user_util";
 import IconShare from "@/assets/svg/IconShare.svg?react";
 import IconUser from "@/assets/svg/IconUser.svg?react";
 import IconCredit from "@/assets/svg/IconCredit.svg?react";
+// import IconLogo1 from "@/assets/svg/IconLogo1.svg?react";
+import IconLogo2 from "@/assets/svg/IconLogo2.svg?react";
 import CommonButton from "./Common/Button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/style_utils";
@@ -104,7 +104,10 @@ const Header = () => {
           navigate("/");
         }}
       >
-        <IconLogoName className={cn("w-[116px] h-9")} />
+        {/* <IconLogoName className={cn("w-[116px] h-9")} /> */}
+        {/* <IconLogo1 className={cn("w-6 h-6")} /> */}
+        <IconLogo2 className={cn("w-6 h-6")} />
+        <span className="ml-2 text-xl font-[500] tracking-[1px]">Realita</span>
       </div>
       <div className="flex items-center z-[22]">
         {/** 分享 */}
@@ -172,6 +175,7 @@ const Header = () => {
           </Popover>
         ) : (
           <CommonButton
+            className="w-7 h-7 flex items-center "
             onClick={() => {
               navigate("/login");
             }}
