@@ -29,17 +29,18 @@ export function useAgoraRTC({
   const [error, setError] = useState<string | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(enableAudio);
   const [isVideoEnabled, setIsVideoEnabled] = useState(enableVideo);
-
-  // Refs
-  const clientRef = useRef<IAgoraRTCClient | null>(null);
-  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
-  const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
-  const remoteUsersRef = useRef<
+  // 🔧 新增：使用 state 来存储远程用户，以便触发重新渲染
+  const [remoteUsers, setRemoteUsers] = useState<
     Map<
       string | number,
       { audioTrack?: IRemoteAudioTrack; videoTrack?: IRemoteVideoTrack }
     >
   >(new Map());
+
+  // Refs
+  const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
 
   /**
    * 初始化 Agora 客户端
@@ -54,48 +55,76 @@ export function useAgoraRTC({
 
       // 监听远程用户发布事件
       clientRef.current.on("user-published", async (user, mediaType) => {
+        console.log("🔔 [user-published] 远程用户发布媒体", {
+          uid: user.uid,
+          mediaType,
+          hasVideo: !!user.videoTrack,
+          hasAudio: !!user.audioTrack,
+        });
+
         // 订阅远程用户
         await clientRef.current!.subscribe(user, mediaType);
-        console.log("订阅成功", user.uid, mediaType);
+        console.log("✅ [订阅成功]", user.uid, mediaType);
 
         // 保存远程用户的轨道
-        const remoteUser = remoteUsersRef.current.get(user.uid) || {};
-        if (mediaType === "video") {
-          remoteUser.videoTrack = user.videoTrack;
-        } else if (mediaType === "audio") {
-          remoteUser.audioTrack = user.audioTrack;
-          // 自动播放音频
-          user.audioTrack?.play();
-        }
-        remoteUsersRef.current.set(user.uid, remoteUser);
+        setRemoteUsers((prev) => {
+          const newMap = new Map(prev);
+          const remoteUser = newMap.get(user.uid) || {};
+          if (mediaType === "video") {
+            remoteUser.videoTrack = user.videoTrack;
+            console.log("📹 [video track] 已保存", user.uid);
+          } else if (mediaType === "audio") {
+            remoteUser.audioTrack = user.audioTrack;
+            // 自动播放音频
+            user.audioTrack?.play();
+            console.log("🔊 [audio track] 已保存并播放", user.uid);
+          }
+          newMap.set(user.uid, remoteUser);
+          console.log("📊 [remoteUsers 更新] 当前远程用户数:", newMap.size);
+          return newMap;
+        });
       });
 
       // 监听远程用户取消发布事件
       clientRef.current.on("user-unpublished", (user, mediaType) => {
-        console.log("用户取消发布", user.uid, mediaType);
-        const remoteUser = remoteUsersRef.current.get(user.uid);
-        if (remoteUser) {
-          if (mediaType === "video") {
-            remoteUser.videoTrack = undefined;
-          } else if (mediaType === "audio") {
-            remoteUser.audioTrack = undefined;
+        console.log("🚫 [user-unpublished] 用户取消发布", user.uid, mediaType);
+        setRemoteUsers((prev) => {
+          const newMap = new Map(prev);
+          const remoteUser = newMap.get(user.uid);
+          if (remoteUser) {
+            if (mediaType === "video") {
+              remoteUser.videoTrack = undefined;
+            } else if (mediaType === "audio") {
+              remoteUser.audioTrack = undefined;
+            }
+            newMap.set(user.uid, remoteUser);
           }
-        }
+          return newMap;
+        });
       });
 
       // 监听远程用户离开事件
       clientRef.current.on("user-left", (user) => {
-        console.log("用户离开", user.uid);
-        remoteUsersRef.current.delete(user.uid);
+        console.log("👋 [user-left] 用户离开", user.uid);
+        setRemoteUsers((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(user.uid);
+          console.log("📊 [remoteUsers 更新] 当前远程用户数:", newMap.size);
+          return newMap;
+        });
       });
       // 监听用户加入频道事件
       clientRef.current.on("user-joined", (user) => {
-        console.log("用户加入频道", user.uid);
+        console.log("👤 [user-joined] 用户加入频道", {
+          uid: user.uid,
+          hasVideo: !!user.hasVideo,
+          hasAudio: !!user.hasAudio,
+        });
         onUserJoined?.();
       });
     }
     return clientRef.current;
-  }, []);
+  }, [onUserJoined]);
 
   /**
    * 加入频道
@@ -108,6 +137,14 @@ export function useAgoraRTC({
       uid: string | number
     ) => {
       try {
+        console.log("🚀 [join] 开始加入频道", {
+          appId: appId.substring(0, 8) + "...",
+          channel,
+          uid,
+          enableAudio,
+          enableVideo,
+        });
+
         if (!appId) {
           throw new Error("缺少 Agora App ID");
         }
@@ -123,23 +160,27 @@ export function useAgoraRTC({
 
         // 加入频道
         await client.join(appId, channel, token, uid);
-        console.log("成功加入频道:", channel);
+        console.log("✅ [join] 成功加入频道:", channel);
+        console.log("📊 [join] 频道中当前用户数:", client.remoteUsers.length);
 
         // 创建并发布本地音视频轨道
         if (enableAudio) {
           localAudioTrackRef.current =
             await AgoraRTC.createMicrophoneAudioTrack();
           await client.publish(localAudioTrackRef.current);
+          console.log("🎤 [join] 已发布音频轨道");
         }
 
         if (enableVideo) {
           localVideoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
           await client.publish(localVideoTrackRef.current);
+          console.log("📹 [join] 已发布视频轨道");
         }
 
         setStatus("connected");
+        console.log("🎉 [join] 连接状态设置为 connected");
       } catch (err) {
-        console.error("加入频道失败:", err);
+        console.error("❌ [join] 加入频道失败:", err);
         setError(err instanceof Error ? err.message : "加入频道失败");
         setStatus("error");
       }
@@ -172,7 +213,7 @@ export function useAgoraRTC({
       }
 
       // 清空远程用户
-      remoteUsersRef.current.clear();
+      setRemoteUsers(new Map());
 
       setStatus("disconnected");
     } catch (err) {
@@ -223,10 +264,24 @@ export function useAgoraRTC({
    */
   const playRemoteVideo = useCallback(
     (userId: string | number, element: HTMLElement | string) => {
-      const remoteUser = remoteUsersRef.current.get(userId);
-      if (remoteUser?.videoTrack) {
-        remoteUser.videoTrack.play(element);
-      }
+      console.log("🎬 [playRemoteVideo] 尝试播放远程视频", {
+        userId,
+        element: typeof element === "string" ? element : "HTMLElement",
+      });
+      setRemoteUsers((prev) => {
+        const remoteUser = prev.get(userId);
+        if (remoteUser?.videoTrack) {
+          console.log("✅ [playRemoteVideo] 找到视频轨道，开始播放");
+          remoteUser.videoTrack.play(element);
+        } else {
+          console.warn("⚠️ [playRemoteVideo] 未找到视频轨道", {
+            userId,
+            hasUser: !!remoteUser,
+            hasVideoTrack: !!remoteUser?.videoTrack,
+          });
+        }
+        return prev;
+      });
     },
     []
   );
@@ -259,6 +314,6 @@ export function useAgoraRTC({
     client: clientRef.current,
     localAudioTrack: localAudioTrackRef.current,
     localVideoTrack: localVideoTrackRef.current,
-    remoteUsers: remoteUsersRef.current,
+    remoteUsers, // 🔧 使用 state 而不是 ref
   };
 }

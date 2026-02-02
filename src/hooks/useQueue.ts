@@ -54,6 +54,7 @@ export const useQueue = ({
     const res = await getQueueStatus();
     if (res.code === 200) {
       if (
+        !res.data ||
         res.data.number_of_users_ahead === null ||
         res.data.expire_time === null
       ) {
