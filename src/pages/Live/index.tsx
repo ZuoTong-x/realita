@@ -1,4 +1,14 @@
 import { useEffect, useState, useRef } from "react";
+import {
+  useJoin,
+  useLocalCameraTrack,
+  useLocalMicrophoneTrack,
+  usePublish,
+  useRemoteUsers,
+  useIsConnected,
+  RemoteUser,
+  LocalUser,
+} from "agora-rtc-react";
 
 import CommonButton from "@/components/Common/Button";
 import IconAudioOff from "@/assets/svg/IconAudioOff.svg?react";
@@ -7,8 +17,6 @@ import IconVideoOff from "@/assets/svg/IconVideoOff.svg?react";
 import IconVideoOn from "@/assets/svg/IconVideoOn.svg?react";
 import IconCallMissed from "@/assets/svg/IconCallMissed.svg?react";
 import IconCamera from "@/assets/svg/IconCamera.svg?react";
-import { useAgoraRTC } from "@/hooks/useAgoraRTC";
-
 import useDraggable from "@/hooks/useDraggable";
 import {
   getAvailableStreams,
@@ -18,7 +26,7 @@ import {
 } from "@/api";
 import { useTranslation } from "react-i18next";
 import type { StreamInfo } from "@/types";
-import { App, Modal, Progress } from "antd";
+import { App, Modal, Progress, Spin } from "antd";
 import { useRequest } from "ahooks";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "@/stores/userStore";
@@ -52,16 +60,24 @@ const LivePage = () => {
     ? localStorage.getItem(`${characterIdFromUrl}_bgImg`)
     : localStorage.getItem("bgImg");
   const [progress, setProgress] = useState<number>(0);
-  // 是否静音
-  const [muted, setMuted] = useState<boolean>(false);
 
-  const [videoEnabled, setVideoEnabled] = useState<boolean>(true);
+  // Agora 连接参数
+  const [calling, setCalling] = useState(false);
+  const [appId, setAppId] = useState("");
+  const [channel, setChannel] = useState("");
+  const [token, setToken] = useState<string | null>(null);
+  const [uid, setUid] = useState<number | null>(null);
+
+  // 音视频控制
+  const [micOn, setMicOn] = useState(true);
+  const [cameraOn, setCameraOn] = useState(true);
+
+  // UI 状态
   const [permModalOpen, setPermModalOpen] = useState<boolean>(false);
-
   const [streamInfoErrorModalOpen, setStreamInfoErrorModalOpen] =
     useState<boolean>(false);
-  const localPreviewRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [endingCall, setEndingCall] = useState<boolean>(false);
+
   const streamInfo = useRef<StreamInfo | null>(null);
   // 记录进入通话时的初始积分
   const initialCreditsRef = useRef<number>(0);
@@ -72,47 +88,18 @@ const LivePage = () => {
     height: number;
   }>({ width: 0, height: 0 });
 
-  const agoraInfo = useRef<{
-    app_id: string;
-    channel_name: string;
-    user_rtc_token: string;
-    user_uid: string;
-  } | null>(null);
+  // 使用 Agora 官方 hooks
+  const isConnected = useIsConnected();
+  useJoin(
+    { appid: appId, channel: channel, token: token, uid: uid || undefined },
+    calling
+  );
 
-  // const {
-  //   start: startLive,
-  //   stop: stopLive,
-  //   status: liveStatus,
-  //   whipPcRef,
-  // } = useWebRTCWhipWhep({
-  //   preview: localPreviewRef,
-  //   audioOnly: !videoEnabled,
-  //   remoteVideoRef: remoteVideoRef,
-  //   onSuccess: () => handleStartLiveSuccess(),
-  // });
-  const {
-    status: liveStatus,
-    join,
-    leave,
-    playLocalVideo,
-    playRemoteVideo,
-    remoteUsers,
-    toggleAudio,
-    toggleVideo,
-  } = useAgoraRTC({
-    enableVideo: videoEnabled,
-    enableAudio: true,
-    onUserJoined: async () => {
-      await recordStreamStartTime(streamInfo.current!.stream_id);
-      // 记录进入通话时的初始积分
-      const currentUserInfo = useUserStore.getState().userInfo;
-      if (currentUserInfo) {
-        initialCreditsRef.current = currentUserInfo.credits;
-      }
-      run();
-      cancelGetStreamInfo();
-    },
-  });
+  const { localMicrophoneTrack } = useLocalMicrophoneTrack(micOn);
+  const { localCameraTrack } = useLocalCameraTrack(cameraOn);
+  usePublish([localMicrophoneTrack, localCameraTrack]);
+
+  const remoteUsers = useRemoteUsers();
 
   const sendStreamHeartbeatRequest = async () => {
     if (!streamInfo.current) return;
@@ -121,7 +108,7 @@ const LivePage = () => {
     updateCredits(remainingCredits);
     const res = await sendStreamHeartbeat(streamInfo.current.stream_id);
     if (res.code !== 200) {
-      await leave();
+      setCalling(false);
       await stopStream(streamInfo.current.stream_id);
       cancel();
       cancelGetStreamInfo();
@@ -135,7 +122,7 @@ const LivePage = () => {
         // 检查积分是否足够
         if (remainingCredits < 0) {
           message.error(t("live_no_credits"));
-          await leave();
+          setCalling(false);
           await stopStream(streamInfo.current.stream_id);
           cancel();
           cancelGetStreamInfo();
@@ -164,18 +151,22 @@ const LivePage = () => {
         res.data.user_rtc_token &&
         res.data.user_uid
       ) {
-        agoraInfo.current = {
+        console.log("📡 [getStreamInfo] 收到流信息:", {
           app_id: res.data.app_id,
           channel_name: res.data.channel_name,
-          user_rtc_token: res.data.user_rtc_token,
+          user_rtc_token: res.data.user_rtc_token?.substring(0, 30) + "...",
           user_uid: res.data.user_uid,
-        };
-        join(
-          agoraInfo.current.app_id,
-          agoraInfo.current.channel_name,
-          agoraInfo.current.user_rtc_token,
-          agoraInfo.current.user_uid
-        );
+          tokenType: typeof res.data.user_rtc_token,
+          tokenLength: res.data.user_rtc_token?.length,
+        });
+
+        // 设置 Agora 参数并开始连接
+        setAppId(res.data.app_id);
+        setChannel(res.data.channel_name!);
+        setToken(res.data.user_rtc_token!);
+        setUid(Number(res.data.user_uid));
+        setCalling(true);
+
         cancelGetStreamInfo();
       }
     } else {
@@ -279,28 +270,43 @@ const LivePage = () => {
     return () => window.removeEventListener("resize", calculateVideoBoxSize);
   }, [bgImg]);
 
+  // 监听连接状态，触发相应的业务逻辑
+  useEffect(() => {
+    if (isConnected && streamInfo.current) {
+      console.log("✅ [Live] 已连接到频道");
+      // 记录流开始时间
+      recordStreamStartTime(streamInfo.current.stream_id);
+      // 记录进入通话时的初始积分
+      const currentUserInfo = useUserStore.getState().userInfo;
+      if (currentUserInfo) {
+        initialCreditsRef.current = currentUserInfo.credits;
+      }
+      // 开始心跳
+      run();
+      cancelGetStreamInfo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]);
+
   const handleCall = async () => {
-    if (liveStatus === "connected") {
-      await leave();
-      await stopStream(streamInfo.current!.stream_id);
-      cancel();
-      navigate(-1);
+    if (isConnected) {
+      setEndingCall(true);
+      try {
+        setCalling(false);
+        if (streamInfo.current) {
+          await stopStream(streamInfo.current.stream_id);
+        }
+        cancel();
+        // 停止并关闭本地轨道
+        localCameraTrack?.stop();
+        localCameraTrack?.close();
+        localMicrophoneTrack?.stop();
+        localMicrophoneTrack?.close();
+      } finally {
+        navigate(-1);
+      }
     }
   };
-
-  // 同步 muted 状态（控制本地音频发送）
-  useEffect(() => {
-    if (liveStatus === "connected") {
-      toggleAudio(!muted);
-    }
-  }, [muted, liveStatus, toggleAudio]);
-
-  // 监听 videoEnabled 变化，切换视频开关
-  useEffect(() => {
-    if (liveStatus === "connected") {
-      toggleVideo(videoEnabled);
-    }
-  }, [videoEnabled, liveStatus, toggleVideo]);
 
   // 初始化：开始轮询获取流信息
   useEffect(() => {
@@ -310,23 +316,6 @@ const LivePage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 本地视频播放
-  useEffect(() => {
-    if (liveStatus === "connected" && localPreviewRef.current && videoEnabled) {
-      playLocalVideo(localPreviewRef.current);
-    }
-  }, [liveStatus, videoEnabled, playLocalVideo]);
-
-  // 远程视频播放
-  useEffect(() => {
-    if (liveStatus === "connected" && remoteVideoRef.current) {
-      const remoteUserIds = Array.from(remoteUsers.keys());
-      if (remoteUserIds.length > 0) {
-        playRemoteVideo(remoteUserIds[0], remoteVideoRef.current);
-      }
-    }
-  }, [liveStatus, remoteUsers, playRemoteVideo]);
 
   return (
     <div
@@ -341,7 +330,7 @@ const LivePage = () => {
             className="w-full h-full object-cover blur-md"
           />
           {/* 灰黑色模糊遮罩 */}
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
         </div>
       ) : (
         <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -359,57 +348,61 @@ const LivePage = () => {
             height: videoBoxSize.height,
           }}
         >
-          {/* 拉流视频 - 一直存在 */}
-          <video
-            ref={remoteVideoRef}
-            className="w-full h-full object-cover"
-            playsInline
-            muted={muted}
-            controls={false}
-            autoPlay
-            disablePictureInPicture
-          />
+          {/* 远程用户视频 */}
+          {isConnected && remoteUsers.length > 0 ? (
+            <div className="w-full h-full">
+              <RemoteUser
+                user={remoteUsers[0]}
+                playVideo={true}
+                playAudio={true}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          ) : (
+            <>
+              {/* 占位视频元素（用于初始状态） */}
+              <div className="w-full h-full bg-black" />
 
-          {/* 未连接状态：灰色蒙版 + 小正方形图片 */}
-          {liveStatus !== "connected" && (
-            <div className="absolute inset-0 bg-[#000000]/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-              {bgImg && (
-                <div
-                  className="rounded-lg overflow-hidden"
-                  style={{
-                    width:
-                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
-                    height:
-                      Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
-                  }}
-                >
-                  <img
-                    src={bgImg}
-                    alt="preview"
-                    className="w-full h-full object-cover"
+              {/* 未连接状态：灰色蒙版 + 小正方形图片 */}
+              <div className="absolute inset-0 bg-[#000000]/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                {bgImg && (
+                  <div
+                    className="rounded-lg overflow-hidden"
+                    style={{
+                      width:
+                        Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
+                      height:
+                        Math.min(videoBoxSize.width, videoBoxSize.height) * 0.3,
+                    }}
+                  >
+                    <img
+                      src={bgImg}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                {/* <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" /> */}
+                <div className="w-[70%] h-16 flex items-center justify-center">
+                  <Progress
+                    percent={progress}
+                    showInfo={false}
+                    styles={{
+                      track: {
+                        backgroundImage:
+                          "linear-gradient( to right, #b1f2ed, #f7e299 )",
+                        borderRadius: 8,
+                        transition: "all 0.3s ease",
+                      },
+                      rail: {
+                        backgroundColor: "rgba(0, 0, 0, 0.1)",
+                        borderRadius: 8,
+                      },
+                    }}
                   />
                 </div>
-              )}
-              {/* <IconLoading className="w-16 h-16 text-[#26babb] animate-spin" /> */}
-              <div className="w-[70%] h-16 flex items-center justify-center">
-                <Progress
-                  percent={progress}
-                  showInfo={false}
-                  styles={{
-                    track: {
-                      backgroundImage:
-                        "linear-gradient( to right, #b1f2ed, #f7e299 )",
-                      borderRadius: 8,
-                      transition: "all 0.3s ease",
-                    },
-                    rail: {
-                      backgroundColor: "rgba(0, 0, 0, 0.1)",
-                      borderRadius: 8,
-                    },
-                  }}
-                />
               </div>
-            </div>
+            </>
           )}
         </div>
 
@@ -420,21 +413,17 @@ const LivePage = () => {
             size="large"
             className="h-20 px-0"
             borderRadiusPx={54}
-            onClick={() => {
-              // 切换视频开关，并在通话中重启以生效
-              const next = !videoEnabled;
-              setVideoEnabled(next);
-            }}
+            onClick={() => setCameraOn((prev) => !prev)}
           >
             <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
-              {videoEnabled ? (
+              {cameraOn ? (
                 <IconVideoOn className="w-12 h-12" />
               ) : (
                 <IconVideoOff className="w-12 h-12" />
               )}
             </span>
           </CommonButton>
-          {liveStatus === "connected" && (
+          {isConnected && (
             <CommonButton
               size="large"
               className="h-24 px-0"
@@ -442,12 +431,7 @@ const LivePage = () => {
               onClick={handleCall}
             >
               <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-5">
-                {/* {liveStatus === "connecting" && (
-                  <IconLoading className="w-13 h-13 text-[#26babb] animate-spin" />
-                )} */}
-                {liveStatus === "connected" && (
-                  <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
-                )}
+                <IconCallMissed className="w-13 h-13 text-[#DB7A7A]" />
               </span>
             </CommonButton>
           )}
@@ -455,14 +439,14 @@ const LivePage = () => {
             size="large"
             className="h-20 px-0"
             borderRadiusPx={54}
-            onClick={() => setMuted((prev) => !prev)}
-            aria-label={muted ? "unmute-page" : "mute-page"}
+            onClick={() => setMicOn((prev) => !prev)}
+            aria-label={micOn ? "mute-page" : "unmute-page"}
           >
             <span className="text-xl font-medium text-[#585858] flex items-center gap-4 justify-center px-4">
-              {muted ? (
-                <IconAudioOff className="w-12 h-12" />
-              ) : (
+              {micOn ? (
                 <IconAudioOn className="w-12 h-12" />
+              ) : (
+                <IconAudioOff className="w-12 h-12" />
               )}
             </span>
           </CommonButton>
@@ -490,14 +474,19 @@ const LivePage = () => {
               pointerEvents: "auto",
             }}
           >
-            {videoEnabled ? (
-              <video
-                ref={localPreviewRef}
-                className="w-full h-full object-cover"
-                playsInline
-                muted
-                autoPlay
-                style={{ pointerEvents: "none" }}
+            {cameraOn ? (
+              <LocalUser
+                audioTrack={localMicrophoneTrack}
+                videoTrack={localCameraTrack}
+                cameraOn={cameraOn}
+                micOn={micOn}
+                playAudio={false}
+                playVideo={true}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  pointerEvents: "none",
+                }}
               />
             ) : (
               <div
@@ -546,6 +535,16 @@ const LivePage = () => {
       >
         <div className="text-[#3B3D2C]">{t("live_stream_info_error_desc")}</div>
       </Modal>
+
+      {/* 结束通话Loading遮罩 */}
+      {endingCall && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-6">
+          <Spin size="large" />
+          <div className="text-white text-xl font-medium">
+            {t("live_ending_call")}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

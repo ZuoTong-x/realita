@@ -46,7 +46,7 @@ export const stopStream = async (
 export const startCharacterLive = async (
   stream_id: string
 ): Promise<ApiResponse<null>> => {
-  const response = await adminRequest.post<ApiResponse<null>>(
+  const response = await adminRequest.get<ApiResponse<null>>(
     `/stream/${stream_id}`
   );
   return response.data;

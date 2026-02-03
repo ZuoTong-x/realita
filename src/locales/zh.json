@@ -85,6 +85,7 @@
   "live_stream_info_error_title": "通话结束",
   "live_stream_info_error_desc": "本次通话已经结束啦，想继续聊可以重新发起对话哦",
   "live_no_credits": "积分不足",
+  "live_ending_call": "正在结束通话...",
   "user_history": "创作历史",
   "user_likes": "我的喜欢",
   "user_assets": "我的收藏",

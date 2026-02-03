@@ -46,6 +46,7 @@ export const useQueue = ({
       setIsInQueue(false);
       setQueueStatus(null);
       cancel();
+      cancelGetAvailableStreams();
     }
   };
 

@@ -14,6 +14,7 @@ import theme from "./theme";
 import useUserStore from "@/stores/userStore";
 import { MobileProvider } from "@/provider";
 import { navigation } from "@/utils/navigation";
+import AgoraRTC, { AgoraRTCProvider } from "agora-rtc-react";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -58,13 +59,22 @@ const renderRoutes = (routes: AppRoute[]) => {
 
 const App = () => {
   const BASENAME = import.meta.env.BASE_URL;
+
+  // 创建全局 Agora 客户端（RTC 模式）
+  const agoraClient = AgoraRTC.createClient({
+    mode: "rtc",
+    codec: "h264",
+  });
+
   return (
     <BrowserRouter basename={BASENAME}>
       <NavigateSetter />
       <MobileProvider>
         <ConfigProvider theme={theme}>
           <AntdApp>
-            <Routes>{renderRoutes(routes)}</Routes>
+            <AgoraRTCProvider client={agoraClient}>
+              <Routes>{renderRoutes(routes)}</Routes>
+            </AgoraRTCProvider>
           </AntdApp>
         </ConfigProvider>
       </MobileProvider>

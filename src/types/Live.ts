@@ -13,7 +13,7 @@ export interface StreamInfo {
   /**
    * 声网Agora频道的名称。
    */
-  channel_name: null;
+  channel_name: string | null;
   /**
    * 上游LightX2V服务的流ID.
    */
@@ -33,11 +33,11 @@ export interface StreamInfo {
   /**
    * 用户在声网Agora频道的RTC Token。
    */
-  user_rtc_token: null;
+  user_rtc_token: string | null;
   /**
    * 用户在声网Agora频道的用户ID。
    */
-  user_uid: null;
+  user_uid: string | number | null;
   /**
    * 声网Agora频道的App ID。
    */

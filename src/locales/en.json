@@ -85,6 +85,7 @@
   "live_stream_info_error_title": "Call ended",
   "live_stream_info_error_desc": "This call has ended successfully. Feel free to start a new conversation if you'd like to continue chatting.",
   "live_no_credits": "Credits not enough",
+  "live_ending_call": "Ending call...",
   "user_history": "History",
   "user_likes": "Likes",
   "user_assets": "Assets",
