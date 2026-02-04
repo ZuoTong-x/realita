@@ -270,23 +270,23 @@ const LivePage = () => {
     return () => window.removeEventListener("resize", calculateVideoBoxSize);
   }, [bgImg]);
 
+  const handleConnected = async () => {
+    console.log("✅ [Live] 已连接到频道");
+    await recordStreamStartTime(streamInfo.current!.stream_id);
+    // 记录进入通话时的初始积分
+    const currentUserInfo = useUserStore.getState().userInfo;
+    if (currentUserInfo) {
+      initialCreditsRef.current = currentUserInfo.credits;
+    }
+    cancelGetStreamInfo();
+    run();
+  };
   // 监听连接状态，触发相应的业务逻辑
   useEffect(() => {
     if (isConnected && streamInfo.current) {
-      console.log("✅ [Live] 已连接到频道");
-      // 记录流开始时间
-      recordStreamStartTime(streamInfo.current.stream_id);
-      // 记录进入通话时的初始积分
-      const currentUserInfo = useUserStore.getState().userInfo;
-      if (currentUserInfo) {
-        initialCreditsRef.current = currentUserInfo.credits;
-      }
-      // 开始心跳
-      run();
-      cancelGetStreamInfo();
+      handleConnected();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected]);
+  }, [isConnected, streamInfo.current]);
 
   const handleCall = async () => {
     if (isConnected) {
@@ -314,7 +314,6 @@ const LivePage = () => {
     return () => {
       cancelGetStreamInfo();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -354,7 +353,7 @@ const LivePage = () => {
               <RemoteUser
                 user={remoteUsers[0]}
                 playVideo={true}
-                playAudio={true}
+                playAudio={micOn}
                 style={{ width: "100%", height: "100%" }}
               />
             </div>
@@ -479,7 +478,7 @@ const LivePage = () => {
                 audioTrack={localMicrophoneTrack}
                 videoTrack={localCameraTrack}
                 cameraOn={cameraOn}
-                micOn={micOn}
+                micOn={true}
                 playAudio={false}
                 playVideo={true}
                 style={{
