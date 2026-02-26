@@ -43,6 +43,7 @@
   "login_login_success": "Login successful",
   "login_login_failed": "Login failed",
   "login_login_captcha_error_msg": "Verification code error",
+  "login_login_captcha_sent_too_often": "Verification code sent too often, please try again later",
   "login_login_welcome": "Welcome to login",
   "login_fetch_user_info_failed": "Failed to get user information",
   "login_fetch_credits_failed": "Failed to get credits",

@@ -117,6 +117,10 @@ const LoginForm = () => {
     try {
       const ret = await sendCaptcha(formData.phone);
       if (ret.code !== 200) {
+        if (ret.code === 429) {
+          message.error(t("login_login_captcha_sent_too_often"));
+          return;
+        }
         // message.error(ret.msg || t("login_send_captcha_failed"));
         message.error(t("login_send_captcha_failed"));
         return;
