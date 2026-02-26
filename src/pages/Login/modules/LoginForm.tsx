@@ -24,8 +24,7 @@ const LoginForm = () => {
   const [formData, setFormData] = useState({ phone: "", captcha: "" });
   const [canLogin, setCanLogin] = useState(false);
   const [hasSendCaptcha, setHasSendCaptcha] = useState(false);
-  const [remainTime, disabled, startCountdown, cancelCountdown] =
-    useCountdown(10);
+  const [remainTime, disabled, startCountdown] = useCountdown(10);
 
   const loginGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
