@@ -34,6 +34,7 @@
   "login_login_resend_captcha": "重新发送",
   "login_login_captcha_sent": "验证码已发送",
   "login_send_captcha_failed": "发送验证码失败",
+  "login_login_captcha_error_msg": "验证码错误",
   "login_login_verify": "验证登录",
   "login_login_agreement": "登录即代表您同意",
   "login_login_privacy": "隐私条款",

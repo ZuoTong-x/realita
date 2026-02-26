@@ -2,7 +2,8 @@ import request from "./request";
 import type { ApiResponse, CaptchaRespInfo } from "@/types";
 import type { Examples, TokenInfo } from "@/types/Login";
 import type { UserInfo } from "@/types/UserInfo";
-// 首页优秀示例列表 /showcase_examples
+
+// 登陆页背景视频列表 /showcase_examples
 export const getShowcaseExampleList = async (): Promise<
   ApiResponse<Examples[]>
 > => {
@@ -25,7 +26,6 @@ export const signInWithGoogle = async (
 };
 
 // 退出登录; /sign_out;
-
 export const signOut = async (): Promise<ApiResponse<null>> => {
   const response = await request.post<ApiResponse<null>>("/sign_out");
   return response.data;
@@ -52,8 +52,8 @@ export const sendCaptcha = async (
   phone: string
 ): Promise<ApiResponse<CaptchaRespInfo>> => {
   const response = await request.post<ApiResponse<CaptchaRespInfo>>(
-    "/auth/send-code",
-    { phone }
+    "/aliyun_send_sms",
+    { phone_number: phone }
   );
   return response.data;
 };
@@ -64,8 +64,8 @@ export const verifyCaptcha = async (
   code: string
 ): Promise<ApiResponse<TokenInfo>> => {
   const response = await request.post<ApiResponse<TokenInfo>>(
-    "/auth/verify-code",
-    { phone, code }
+    "/aliyun_verify_sms",
+    { phone_number: phone, code: code }
   );
   return response.data;
 };

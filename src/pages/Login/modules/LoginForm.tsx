@@ -13,6 +13,7 @@ import { saveRefreshToken, saveToken } from "@/utils/user_util";
 import useCountdown from "@/hooks/useCountdown";
 import { useNavigate } from "react-router-dom";
 import { useMobile } from "@/provider";
+import { sendCaptcha, verifyCaptcha } from "@/api";
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -22,9 +23,9 @@ const LoginForm = () => {
   const { loginStore } = useUserStore();
   const [formData, setFormData] = useState({ phone: "", captcha: "" });
   const [canLogin, setCanLogin] = useState(false);
-  const [, setLogging] = useState(false);
-  const [hasSendCaptcha] = useState(false);
-  const [remainTime] = useCountdown(10);
+  const [hasSendCaptcha, setHasSendCaptcha] = useState(false);
+  const [remainTime, disabled, startCountdown, cancelCountdown] =
+    useCountdown(10);
 
   const loginGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -33,11 +34,9 @@ const LoginForm = () => {
     onError: (errorResponse) => {
       console.log("Google 登录失败:", errorResponse);
       message.error(t("login_login_failed"));
-      setLogging(false);
     },
     onNonOAuthError: (error) => {
       console.error("Google 取消授权:", error);
-      setLogging(false);
     },
   });
 
@@ -53,8 +52,6 @@ const LoginForm = () => {
     } catch (error) {
       console.error("验证 Google Token 错误:", error);
       message.error(t("login_login_failed"));
-    } finally {
-      setLogging(false);
     }
   };
 
@@ -77,62 +74,65 @@ const LoginForm = () => {
 
   const handleGLClick = () => {
     message.loading(t("login_login_fetching"));
-    setLogging(true);
     loginGoogle();
   };
 
-  const handlePhoneLogin = async () => {
-    // event.preventDefault(); // 阻止默认提交刷新页面
-    // if (formData.phone === "") {
-    //   message.warning(t("login_login_phone_placeholder"));
-    //   return;
-    // }
-    // if (formData.captcha === "") {
-    //   message.warning(t("login_login_captcha_placeholder"));
-    //   return;
-    // }
-    // const tost = message.loading(t("login_login_fetching"));
-    // setLogging(true);
-    // try {
-    //   const res = await verifyCaptcha(formData.phone, formData.captcha);
-    //   if (res.code !== 200) {
-    //     message.error(res.msg || t("login_login_failed"));
-    //     return;
-    //   }
-    //   handleSuccessResp(res.data);
-    // } catch (error) {
-    //   console.error("手机号登录失败:", error);
-    //   message.error(t("login_login_failed"));
-    // } finally {
-    //   setLogging(false);
-    //   tost();
-    // }
+  const handlePhoneLogin = async (
+    event: React.FormEvent<HTMLButtonElement> | React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault(); // 阻止默认提交刷新页面
+    if (formData.phone === "") {
+      message.warning(t("login_login_phone_placeholder"));
+      return;
+    }
+    if (formData.captcha === "") {
+      message.warning(t("login_login_captcha_placeholder"));
+      return;
+    }
+    const tost = message.loading(t("login_login_fetching"));
+    try {
+      const res = await verifyCaptcha(formData.phone, formData.captcha);
+      if (res.code !== 200) {
+        // message.error(res.msg || t("login_login_failed"));
+        message.error(t("login_login_captcha_error_msg"));
+        return;
+      }
+      handleSuccessResp(res.data);
+    } catch (error) {
+      console.error("手机号登录失败:", error);
+      message.error(t("login_login_failed"));
+    } finally {
+      tost();
+    }
   };
 
   // 发送验证码
   const handleCaptchaClick = async () => {
-    // if (formData.phone === "") {
-    //   message.warning(t("login_login_phone_placeholder"));
-    //   return;
-    // }
-    // if (disabled) {
-    //   return;
-    // }
-    // try {
-    //   const ret = await sendCaptcha(formData.phone);
-    //   if (ret.code !== 200) {
-    //     message.error(ret.msg || t("login.send_captcha_failed"));
-    //     return;
-    //   }
-    //   const tost = message.loading(t("login.login_sending_captcha"), 0);
-    //   tost();
-    //   setHasSendCaptcha(true);
-    //   message.success(t("login.login_captcha_sent"));
-    //   startCountdown(ret.data.resend_delay_seconds);
-    // } catch (error) {
-    //   console.error("发送验证码失败:", error);
-    //   message.error(t("login.send_captcha_failed"));
-    // }
+    if (formData.phone === "") {
+      message.warning(t("login_login_phone_placeholder"));
+      return;
+    }
+    if (disabled) {
+      return;
+    }
+    try {
+      const ret = await sendCaptcha(formData.phone);
+      if (ret.code !== 200) {
+        // message.error(ret.msg || t("login_send_captcha_failed"));
+        message.error(t("login_send_captcha_failed"));
+        return;
+      }
+      const tost = message.loading(t("login_login_sending_captcha"), 0);
+      tost();
+      setHasSendCaptcha(true);
+      message.success(t("login_login_captcha_sent"));
+      // 固定倒计时
+      // startCountdown(ret.data.resend_delay_seconds);
+      startCountdown(60);
+    } catch (error) {
+      console.error("发送验证码失败:", error);
+      message.error(t("login_send_captcha_failed"));
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,7 +173,7 @@ const LoginForm = () => {
           <form
             className="mt-[30px] flex flex-col z-[20]"
             action=""
-            onSubmit={handlePhoneLogin}
+            onSubmit={(event) => handlePhoneLogin(event)}
           >
             {/* 手机号码 */}
             <div className="h-10 flex items-center rounded-xl border border-[#0000001A] overflow-hidden text-sm font-normal text-[#3B3D2C]">
@@ -201,7 +201,7 @@ const LoginForm = () => {
                 className="flex-1 bg-[#fff] px-2 h-full border-none outline-none"
                 type="text"
                 name="captcha"
-                maxLength={6}
+                maxLength={4}
                 placeholder={t("login_login_captcha_placeholder")}
                 value={formData.captcha}
                 onChange={handleChange}
@@ -230,7 +230,7 @@ const LoginForm = () => {
                 ${canLogin ? "bg-[#fff] text-[#000]" : "bg-[#F5F5F1] text-[#A0A0A0]"}
                 ${canLogin ? "cursor-pointer" : "cursor-not-allowed"}
               `}
-              onClick={handlePhoneLogin}
+              onClick={(event) => handlePhoneLogin(event)}
             >
               <span className="text-sm font-medium">
                 {t("login_login_verify")}
